@@ -13,7 +13,7 @@
 
 // Switches/Buttons
 #define PIN_POWERSWITCH 39
-#define PIN_BREWSWITCH  30
+#define PIN_BREWSWITCH  14
 #define PIN_STEAMSWITCH 32
 #define PIN_WATERSWITCH 36
 
@@ -27,9 +27,9 @@
 // Sensors
 #define PIN_TEMPSENSOR  16
 #define PIN_WATERSENSOR 23
-#define PIN_HXDAT       35 // Brew scale data pin 1
-#define PIN_HXDAT2      33 // Brew scale data pin 2
-#define PIN_HXCLK       34 // Brew scale clock pin
+#define PIN_HXDAT       33 // Brew scale data pin 1
+#define PIN_HXDAT2      34 // Brew scale data pin 2
+#define PIN_HXCLK       32 // Brew scale clock pin
 
 // Adafruit library for K-type thermocouple
 // Bit-bangs the SPI-compatible interface
@@ -64,7 +64,7 @@
 #define PIN_STEAMLED  1
 
 // Periphery
-#define PIN_ZC 18 // Dimmer circuit Zero Crossing
+#define PIN_ZC 12 // Dimmer circuit Zero Crossing
 
 /**
  * Bidirectional Pins
