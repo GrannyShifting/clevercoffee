@@ -122,7 +122,9 @@ void initScale() {
     unsigned long stabilizingtime = 5000; // tare preciscion can be improved by adding a few seconds of stabilizing time
     boolean _tare = true;                 // set this to false if you don't want tare to be performed in the next step
 
-#if SCALE_TYPE == 1
+#if SCALE_TYPE == 2
+    LoadCell.start(stabilizingtime, _tare);
+#elif SCALE_TYPE == 1
     while (!LoadCell.startMultiple(stabilizingtime, _tare))
         ;
 #else

@@ -33,6 +33,7 @@
 #include "utils/Timer.h"
 
 // Hardware classes
+#include <AiEsp32RotaryEncoder.h> // Only works on 5V
 #include "hardware/GPIOPin.h"
 #include "hardware/IOSwitch.h"
 #include "hardware/LED.h"
@@ -41,6 +42,7 @@
 #include "hardware/Switch.h"
 #include "hardware/TempSensorDallas.h"
 #include "hardware/TempSensorTSIC.h"
+#include "hardware/TempSensorMAX6675.h"
 #include "hardware/pinmapping.h"
 
 // User configuration & defaults
@@ -72,6 +74,9 @@ hw_timer_t* timer = NULL;
 #if (FW_VERSION != USR_FW_VERSION) || (FW_SUBVERSION != USR_FW_SUBVERSION) || (FW_HOTFIX != USR_FW_HOTFIX)
 #error Version of userConfig file and main.cpp need to match!
 #endif
+
+// // Rotary Encoder
+AiEsp32RotaryEncoder rotaryEncoder = AiEsp32RotaryEncoder(PIN_ROTARY_DT, PIN_ROTARY_CLK, PIN_ROTARY_SW, PIN_ENCODER_VCC, ROTARY_ENCODER_STEPS);
 
 MACHINE machine = (enum MACHINE)MACHINEID;
 
@@ -200,6 +205,8 @@ float filterPressureValue(float input);
 int writeSysParamsToMQTT(bool continueOnError);
 void updateStandbyTimer(void);
 void resetStandbyTimer(void);
+void initWebVars(void);
+void initMQTT(void);
 
 // system parameters
 uint8_t pidON = 0; // 1 = control loop in closed loop
@@ -1139,6 +1146,608 @@ void setup() {
     // Initialize the logger
     Logger::init(23);
 
+    initWebVars();
+
+#if (FEATURE_PRESSURESENSOR == 1)
+    Wire.begin();
+#endif
+
+    initMQTT();
+
+    initTimer1();
+
+    storageSetup();
+
+    if (optocouplerType == HIGH) {
+        optocouplerOn = HIGH;
+        optocouplerOff = LOW;
+    }
+    else {
+        optocouplerOn = LOW;
+        optocouplerOff = HIGH;
+    }
+
+    heaterRelay.off();
+    valveRelay.off();
+    pumpRelay.off();
+
+    if (FEATURE_POWERSWITCH) {
+        powerSwitch = new IOSwitch(PIN_POWERSWITCH, GPIOPin::IN_HARDWARE, POWERSWITCH_TYPE, POWERSWITCH_MODE);
+    }
+
+    if (FEATURE_STEAMSWITCH) {
+        steamSwitch = new IOSwitch(PIN_STEAMSWITCH, GPIOPin::IN_HARDWARE, STEAMSWITCH_TYPE, STEAMSWITCH_MODE);
+    }
+
+    // IF optocoupler selected
+    if (BREWDETECTION_TYPE == 3) {
+        if (optocouplerType == HIGH) {
+            pinMode(PIN_BREWSWITCH, INPUT_PULLDOWN);
+        }
+        else {
+            pinMode(PIN_BREWSWITCH, INPUT_PULLUP);
+        }
+    }
+    else if (FEATURE_BREWSWITCH) {
+        brewSwitch = new IOSwitch(PIN_BREWSWITCH, GPIOPin::IN_HARDWARE, BREWSWITCH_TYPE, BREWSWITCH_MODE);
+    }
+
+    if (FEATURE_STATUS_LED){
+        if (LED_TYPE == LED::STANDARD) {
+            statusLedPin = new GPIOPin(PIN_STATUSLED, GPIOPin::OUT);
+            statusLed = new StandardLED(*statusLedPin);
+        }
+        else {
+            // TODO Addressable LEDs
+        }
+    }
+
+    if (FEATURE_BREW_LED){
+        if (LED_TYPE == LED::STANDARD) {
+            brewLedPin = new GPIOPin(PIN_BREWLED, GPIOPin::OUT);
+            brewLed = new StandardLED(*brewLedPin);
+        }
+        else {
+            // TODO Addressable LEDs
+        }
+    }
+
+        if (FEATURE_WATER_SENS == 1) {
+        waterSensor = new IOSwitch(PIN_WATERSENSOR, (WATER_SENS_TYPE == Switch::NORMALLY_OPEN ? GPIOPin::IN_PULLDOWN : GPIOPin::IN_PULLUP), Switch::TOGGLE, WATER_SENS_TYPE);
+    }
+
+#if OLED_DISPLAY != 0
+    u8g2.setI2CAddress(oled_i2c * 2);
+    u8g2.begin();
+    u8g2_prepare();
+    displayLogo(String("Version "), String(sysVersion));
+    delay(2000); // caused crash with wifi manager on esp8266, should be ok on esp32
+#endif
+
+    // Fallback offline
+    if (connectmode == 1) { // WiFi Mode
+        wiFiSetup();
+        websiteSetup();
+
+        // OTA Updates
+        if (ota && WiFi.status() == WL_CONNECTED) {
+            ArduinoOTA.setHostname(hostname); //  Device name for OTA
+            ArduinoOTA.setPassword(OTApass);  //  Password for OTA
+            ArduinoOTA.begin();
+        }
+
+        if (FEATURE_MQTT == 1) {
+            snprintf(topic_will, sizeof(topic_will), "%s%s/%s", mqtt_topic_prefix, hostname, "status");
+            snprintf(topic_set, sizeof(topic_set), "%s%s/+/%s", mqtt_topic_prefix, hostname, "set");
+            mqtt.setServer(mqtt_server_ip, mqtt_server_port);
+            mqtt.setCallback(mqtt_callback);
+            checkMQTT();
+#if MQTT_HASSIO_SUPPORT == 1 // Send Home Assistant MQTT discovery messages
+            sendHASSIODiscoveryMsg();
+#endif
+        }
+    }
+    else if (connectmode == 0) {
+        wm.disconnect();            // no wm
+        readSysParamsFromStorage(); // get all parameters from storage
+        offlineMode = 1;            // offline mode
+        pidON = 1;                  // pid on
+    }
+
+    // Start the logger
+    Logger::begin();
+    Logger::setLevel(LOGLEVEL);
+
+    // Initialize PID controller
+    bPID.SetSampleTime(windowSize);
+    bPID.SetOutputLimits(0, windowSize);
+    bPID.SetIntegratorLimits(0, AGGIMAX);
+    bPID.SetSmoothingFactor(EMA_FACTOR);
+    bPID.SetMode(AUTOMATIC);
+
+    if (TEMP_SENSOR == 1) {
+        tempSensor = new TempSensorDallas(PIN_TEMPSENSOR);
+    }
+    else if (TEMP_SENSOR == 2) {
+        tempSensor = new TempSensorTSIC(PIN_TEMPSENSOR);
+    }
+    else if (TEMP_SENSOR == 3) {
+        tempSensor = new TempSensorMAX6675(PIN_THERM_SCK, PIN_THERM_CS, PIN_THERM_SO);
+    }
+
+    temperature = tempSensor->getCurrentTemperature();
+
+    temperature -= brewTempOffset;
+
+// Init Scale
+#if FEATURE_SCALE == 1
+    initScale();
+#endif
+
+    // Initialisation MUST be at the very end of the init(), otherwise the
+    // time comparision in loop() will have a big offset
+    unsigned long currentTime = millis();
+    previousMillistemp = currentTime;
+    windowStartTime = currentTime;
+    previousMillisMQTT = currentTime;
+    previousMillisOptocouplerReading = currentTime;
+    lastMQTTConnectionAttempt = currentTime;
+
+#if FEATURE_SCALE == 1
+    previousMillisScale = currentTime;
+#endif
+
+#if (FEATURE_PRESSURESENSOR == 1)
+    previousMillisPressure = currentTime;
+#endif
+
+    rotaryEncoder.begin();
+    rotaryEncoder.setup([](){rotaryEncoder.readEncoder_ISR();});
+    // minValue, maxValue, circleValues true|false (when max go to min and vice versa)
+    rotaryEncoder.setBoundaries(-10000, 10000, true); 
+    rotaryEncoder.disableAcceleration();
+
+    setupDone = true;
+
+    enableTimer1();
+
+    double fsUsage = ((double)LittleFS.usedBytes() / LittleFS.totalBytes()) * 100;
+    LOGF(INFO, "LittleFS: %d%% (used %ld bytes from %ld bytes)", (int)ceil(fsUsage), LittleFS.usedBytes(), LittleFS.totalBytes());
+}
+
+void loop() {
+    // Accept potential connections for remote logging
+    Logger::update();
+
+    // Update water sensor
+    loopWater();
+
+    // Update PID settings & machine state
+    looppid();
+
+    // Update LED output based on machine state
+    loopLED();
+
+
+    long encoderVal = rotaryEncoder.encoderChanged();
+    if (encoderVal != 0) {
+        displayMessage("", "", "", String(encoderVal), "", "");
+    }
+
+    if (rotaryEncoder.isEncoderButtonClicked())
+        Serial.println("pressed");
+
+    // pumpRelay.on();
+    // delay(1000);
+    // pumpRelay.off();
+    // delay(1000);
+
+}
+
+void looppid() {
+    // Only do Wifi stuff, if Wifi is connected
+    if (WiFi.status() == WL_CONNECTED && offlineMode == 0) {
+        if (FEATURE_MQTT == 1) {
+            checkMQTT();
+            writeSysParamsToMQTT(true); // Continue on error
+
+            if (mqtt.connected() == 1) {
+                mqtt.loop();
+#if MQTT_HASSIO_SUPPORT == 1
+                hassioDiscoveryTimer();
+#endif
+                mqtt_was_connected = true;
+            }
+            // Supress debug messages until we have a connection etablished
+            else if (mqtt_was_connected) {
+                LOG(INFO, "MQTT disconnected");
+                mqtt_was_connected = false;
+            }
+        }
+
+        ArduinoOTA.handle(); // For OTA
+
+        // Disable interrupt if OTA is starting, otherwise it will not work
+        ArduinoOTA.onStart([]() {
+            disableTimer1();
+            heaterRelay.off();
+        });
+
+        ArduinoOTA.onError([](ota_error_t error) { enableTimer1(); });
+
+        // Enable interrupts if OTA is finished
+        ArduinoOTA.onEnd([]() { enableTimer1(); });
+
+        wifiReconnects = 0; // reset wifi reconnects if connected
+    }
+    else {
+        checkWifi();
+    }
+
+    // Update the temperature:
+    temperature = tempSensor->getCurrentTemperature();
+
+    if (machineState != kSteam) {
+        temperature -= brewTempOffset;
+    }
+
+    testEmergencyStop(); // test if temp is too high
+    bPID.Compute();      // the variable pidOutput now has new values from PID (will be written to heater pin in ISR.cpp)
+
+    if ((millis() - lastTempEvent) > tempEventInterval) {
+        // send temperatures to website endpoint
+        sendTempEvent(temperature, brewSetpoint, pidOutput / 10); // pidOutput is promill, so /10 to get percent value
+        lastTempEvent = millis();
+
+        if (pidON) {
+            LOGF(TRACE, "Current PID mode: %s", bPID.GetPonE() ? "PonE" : "PonM");
+
+            // P-Part
+            LOGF(TRACE, "Current PID input error: %f", bPID.GetInputError());
+            LOGF(TRACE, "Current PID P part: %f", bPID.GetLastPPart());
+            LOGF(TRACE, "Current PID kP: %f", bPID.GetKp());
+            // I-Part
+            LOGF(TRACE, "Current PID I sum: %f", bPID.GetLastIPart());
+            LOGF(TRACE, "Current PID kI: %f", bPID.GetKi());
+            // D-Part
+            LOGF(TRACE, "Current PID diff'd input: %f", bPID.GetDeltaInput());
+            LOGF(TRACE, "Current PID D part: %f", bPID.GetLastDPart());
+            LOGF(TRACE, "Current PID kD: %f", bPID.GetKd());
+
+            // Combined PID output
+            LOGF(TRACE, "Current PID Output: %f", pidOutput);
+            LOGF(TRACE, "Current Machinestate: %s", machinestateEnumToString(machineState));
+            LOGF(TRACE, "timeBrewed %f", timeBrewed);
+            LOGF(TRACE, "brewtimesoftware %f", brewtimesoftware);
+            LOGF(TRACE, "isBrewDetected %i", isBrewDetected);
+            LOGF(TRACE, "brewDetectionMode %i", brewDetectionMode);
+        }
+    }
+
+#if FEATURE_SCALE == 1
+    checkWeight();    // Check Weight Scale in the loop
+    shottimerscale(); // Calculation of weight of shot while brew is running
+#endif
+
+#if (FEATURE_BREWCONTROL == 1)
+    brew();
+#endif
+
+#if (FEATURE_PRESSURESENSOR == 1)
+    unsigned long currentMillisPressure = millis();
+
+    if (currentMillisPressure - previousMillisPressure >= intervalPressure) {
+        previousMillisPressure = currentMillisPressure;
+        inputPressure = measurePressure();
+        inputPressureFilter = filterPressureValue(inputPressure);
+    }
+#endif
+
+    checkSteamSwitch();
+    checkPowerSwitch();
+
+    // set setpoint depending on steam or brew mode
+    if (steamON == 1) {
+        setpoint = steamSetpoint;
+    }
+    else if (steamON == 0) {
+        setpoint = brewSetpoint;
+    }
+
+    updateStandbyTimer();
+
+    handleMachineState();
+
+    // Check if PID should run or not. If not, set to manual and force output to zero
+#if OLED_DISPLAY != 0
+    printDisplayTimer();
+#endif
+
+    if (machineState == kPidDisabled || machineState == kWaterEmpty || machineState == kSensorError || machineState == kEmergencyStop || machineState == kEepromError || machineState == kStandby || brewPIDDisabled) {
+        if (bPID.GetMode() == 1) {
+            // Force PID shutdown
+            bPID.SetMode(0);
+            pidOutput = 0;
+            heaterRelay.off();
+        }
+    }
+    else { // no sensorerror, no pid off or no Emergency Stop
+        if (bPID.GetMode() == 0) {
+            bPID.SetMode(1);
+        }
+    }
+
+    // Regular PID operation
+    if (machineState == kPidNormal) {
+        if (usePonM) {
+            if (startTn != 0) {
+                startKi = startKp / startTn;
+            }
+            else {
+                startKi = 0;
+            }
+
+            if (lastmachinestatepid != machineState) {
+                LOGF(DEBUG, "new PID-Values: P=%.1f  I=%.1f  D=%.1f", startKp, startKi, 0.0);
+                lastmachinestatepid = machineState;
+            }
+
+            bPID.SetTunings(startKp, startKi, 0, P_ON_M);
+        }
+        else {
+            setNormalPIDTunings();
+        }
+    }
+
+    // BD PID
+    if (machineState >= kBrew && machineState <= kBrewDetectionTrailing) {
+        if (brewPIDDelay > 0 && timeBrewed > 0 && timeBrewed < brewPIDDelay * 1000) {
+            // disable PID for brewPIDDelay seconds, enable PID again with new tunings after that
+            if (!brewPIDDisabled) {
+                brewPIDDisabled = true;
+                bPID.SetMode(MANUAL);
+                LOGF(DEBUG, "disabled PID, waiting for %d seconds before enabling PID again", brewPIDDelay);
+            }
+        }
+        else {
+            if (brewPIDDisabled) {
+                // enable PID again
+                bPID.SetMode(AUTOMATIC);
+                brewPIDDisabled = false;
+                LOG(DEBUG, "Enabled PID again after delay");
+            }
+
+            if (useBDPID) {
+                setBDPIDTunings();
+            }
+            else {
+                setNormalPIDTunings();
+            }
+        }
+    }
+
+    // Steam on
+    if (machineState == kSteam) {
+        if (lastmachinestatepid != machineState) {
+            LOGF(DEBUG, "new PID-Values: P=%.1f  I=%.1f  D=%.1f", 150.0, 0.0, 0.0);
+            lastmachinestatepid = machineState;
+        }
+
+        bPID.SetTunings(steamKp, 0, 0, 1);
+    }
+    // sensor error OR Emergency Stop
+}
+
+void loopLED() {
+    if (FEATURE_STATUS_LED) {
+        if ((machineState == kPidNormal && (fabs(temperature - setpoint) < 0.3)) || (temperature > 115 && fabs(temperature - setpoint) < 5)) {
+            statusLed->turnOn();
+        }
+        else {
+            statusLed->turnOff();
+        }
+    }
+
+    if (FEATURE_BREW_LED) {
+        if (machineState == kBrew) {
+            brewLed->turnOn();
+        }
+        else {
+            brewLed->turnOff();
+        }
+    }
+}
+
+void checkWater() {
+    if (FEATURE_WATER_SENS != 1) {
+        return;
+    }
+
+    bool isWaterDetected = waterSensor->isPressed();
+
+    if (isWaterDetected && !waterFull) {
+        waterFull = true;
+        LOG(INFO, "Water full");
+    }
+    else if (!isWaterDetected && waterFull) {
+        waterFull = false;
+        LOG(WARNING, "Water empty");
+    }
+}
+
+void setBackflush(int backflush) {
+    backflushOn = backflush;
+}
+
+#if FEATURE_SCALE == 1
+void setScaleCalibration(int calibration) {
+    scaleCalibrationOn = calibration;
+}
+
+void setScaleTare(int tare) {
+    scaleTareOn = tare;
+}
+#endif
+
+void setSteamMode(int steamMode) {
+    steamON = steamMode;
+
+    if (steamON == 1) {
+        steamFirstON = 1;
+    }
+
+    if (steamON == 0) {
+        steamFirstON = 0;
+    }
+}
+
+void setPidStatus(int pidStatus) {
+    pidON = pidStatus;
+    writeSysParamsToStorage();
+}
+
+void setNormalPIDTunings() {
+    // Prevent overwriting of brewdetection values
+    // calc ki, kd
+    if (aggTn != 0) {
+        aggKi = aggKp / aggTn;
+    }
+    else {
+        aggKi = 0;
+    }
+
+    aggKd = aggTv * aggKp;
+
+    bPID.SetIntegratorLimits(0, aggIMax);
+
+    if (lastmachinestatepid != machineState) {
+        LOGF(DEBUG, "new PID-Values: P=%.1f  I=%.1f  D=%.1f", aggKp, aggKi, aggKd);
+        lastmachinestatepid = machineState;
+    }
+
+    bPID.SetTunings(aggKp, aggKi, aggKd, 1);
+}
+
+void setBDPIDTunings() {
+    // calc ki, kd
+    if (aggbTn != 0) {
+        aggbKi = aggbKp / aggbTn;
+    }
+    else {
+        aggbKi = 0;
+    }
+
+    aggbKd = aggbTv * aggbKp;
+
+    if (lastmachinestatepid != machineState) {
+        LOGF(DEBUG, "new PID-Values: P=%.1f  I=%.1f  D=%.1f", aggbKp, aggbKi, aggbKd);
+        lastmachinestatepid = machineState;
+    }
+
+    bPID.SetTunings(aggbKp, aggbKi, aggbKd, 1);
+}
+
+/**
+ * @brief Reads all system parameter values from non-volatile storage
+ *
+ * @return 0 = success, < 0 = failure
+ */
+int readSysParamsFromStorage(void) {
+    if (sysParaPidOn.getStorage() != 0) return -1;
+    if (sysParaUsePonM.getStorage() != 0) return -1;
+    if (sysParaPidKpStart.getStorage() != 0) return -1;
+    if (sysParaPidTnStart.getStorage() != 0) return -1;
+    if (sysParaPidKpReg.getStorage() != 0) return -1;
+    if (sysParaPidTnReg.getStorage() != 0) return -1;
+    if (sysParaPidTvReg.getStorage() != 0) return -1;
+    if (sysParaPidIMaxReg.getStorage() != 0) return -1;
+    if (sysParaBrewSetpoint.getStorage() != 0) return -1;
+    if (sysParaTempOffset.getStorage() != 0) return -1;
+    if (sysParaBrewPIDDelay.getStorage() != 0) return -1;
+    if (sysParaUseBDPID.getStorage() != 0) return -1;
+    if (sysParaPidKpBd.getStorage() != 0) return -1;
+    if (sysParaPidTnBd.getStorage() != 0) return -1;
+    if (sysParaPidTvBd.getStorage() != 0) return -1;
+    if (sysParaBrewTime.getStorage() != 0) return -1;
+    if (sysParaBrewSwTime.getStorage() != 0) return -1;
+    if (sysParaBrewThresh.getStorage() != 0) return -1;
+    if (sysParaPreInfTime.getStorage() != 0) return -1;
+    if (sysParaPreInfPause.getStorage() != 0) return -1;
+    if (sysParaPidKpSteam.getStorage() != 0) return -1;
+    if (sysParaSteamSetpoint.getStorage() != 0) return -1;
+    if (sysParaWeightSetpoint.getStorage() != 0) return -1;
+    if (sysParaWifiCredentialsSaved.getStorage() != 0) return -1;
+    if (sysParaStandbyModeOn.getStorage() != 0) return -1;
+    if (sysParaStandbyModeTime.getStorage() != 0) return -1;
+    if (sysParaScaleCalibration.getStorage() != 0) return -1;
+    if (sysParaScale2Calibration.getStorage() != 0) return -1;
+    if (sysParaScaleKnownWeight.getStorage() != 0) return -1;
+    if (sysParaBackflushCycles.getStorage() != 0) return -1;
+    if (sysParaBackflushFillTime.getStorage() != 0) return -1;
+    if (sysParaBackflushFlushTime.getStorage() != 0) return -1;
+
+    return 0;
+}
+
+/**
+ * @brief Writes all current system parameter values to non-volatile storage
+ *
+ * @return 0 = success, < 0 = failure
+ */
+int writeSysParamsToStorage(void) {
+    if (sysParaPidOn.setStorage() != 0) return -1;
+    if (sysParaUsePonM.setStorage() != 0) return -1;
+    if (sysParaPidKpStart.setStorage() != 0) return -1;
+    if (sysParaPidTnStart.setStorage() != 0) return -1;
+    if (sysParaPidKpReg.setStorage() != 0) return -1;
+    if (sysParaPidTnReg.setStorage() != 0) return -1;
+    if (sysParaPidTvReg.setStorage() != 0) return -1;
+    if (sysParaPidIMaxReg.setStorage() != 0) return -1;
+    if (sysParaBrewSetpoint.setStorage() != 0) return -1;
+    if (sysParaTempOffset.setStorage() != 0) return -1;
+    if (sysParaBrewPIDDelay.setStorage() != 0) return -1;
+    if (sysParaUseBDPID.setStorage() != 0) return -1;
+    if (sysParaPidKpBd.setStorage() != 0) return -1;
+    if (sysParaPidTnBd.setStorage() != 0) return -1;
+    if (sysParaPidTvBd.setStorage() != 0) return -1;
+    if (sysParaBrewTime.setStorage() != 0) return -1;
+    if (sysParaBrewSwTime.setStorage() != 0) return -1;
+    if (sysParaBrewThresh.setStorage() != 0) return -1;
+    if (sysParaPreInfTime.setStorage() != 0) return -1;
+    if (sysParaPreInfPause.setStorage() != 0) return -1;
+    if (sysParaPidKpSteam.setStorage() != 0) return -1;
+    if (sysParaSteamSetpoint.setStorage() != 0) return -1;
+    if (sysParaWeightSetpoint.setStorage() != 0) return -1;
+    if (sysParaWifiCredentialsSaved.setStorage() != 0) return -1;
+    if (sysParaStandbyModeOn.setStorage() != 0) return -1;
+    if (sysParaStandbyModeTime.setStorage() != 0) return -1;
+    if (sysParaScaleCalibration.setStorage() != 0) return -1;
+    if (sysParaScale2Calibration.setStorage() != 0) return -1;
+    if (sysParaScaleKnownWeight.setStorage() != 0) return -1;
+    if (sysParaBackflushCycles.setStorage() != 0) return -1;
+    if (sysParaBackflushFillTime.setStorage() != 0) return -1;
+    if (sysParaBackflushFlushTime.setStorage() != 0) return -1;
+
+    return storageCommit();
+}
+
+/**
+ * @brief Performs a factory reset.
+ *
+ * @return 0 = success, < 0 = failure
+ */
+int factoryReset(void) {
+    int stoStatus;
+
+    if ((stoStatus = storageFactoryReset()) != 0) {
+        return stoStatus;
+    }
+
+    return readSysParamsFromStorage();
+}
+
+
+void initWebVars(void){
     editableVars["PID_ON"] = {
         .displayName = "Enable PID Controller", .hasHelpText = false, .helpText = "", .type = kUInt8, .section = sPIDSection, .position = 1, .show = [] { return true; }, .minValue = 0, .maxValue = 1, .ptr = (void*)&pidON};
 
@@ -1551,12 +2160,14 @@ void setup() {
     editableVars["VERSION"] = {
         .displayName = F("Version"), .hasHelpText = false, .helpText = "", .type = kCString, .section = sOtherSection, .position = 33, .show = [] { return false; }, .minValue = 0, .maxValue = 1, .ptr = (void*)sysVersion};
     // when adding parameters, set EDITABLE_VARS_LEN to max of .position
+}
 
-#if (FEATURE_PRESSURESENSOR == 1)
-    Wire.begin();
-#endif
 
-    // Editable values reported to MQTT
+
+
+void initMQTT(void){
+
+// Editable values reported to MQTT
     mqttVars["pidON"] = [] { return &editableVars.at("PID_ON"); };
     mqttVars["brewSetpoint"] = [] { return &editableVars.at("BREW_SETPOINT"); };
     mqttVars["brewTempOffset"] = [] { return &editableVars.at("BREW_TEMP_OFFSET"); };
@@ -1623,561 +2234,4 @@ void setup() {
     mqttSensors["currentWeight"] = [] { return weight; };
 #endif
 
-    initTimer1();
-
-    storageSetup();
-
-    if (optocouplerType == HIGH) {
-        optocouplerOn = HIGH;
-        optocouplerOff = LOW;
-    }
-    else {
-        optocouplerOn = LOW;
-        optocouplerOff = HIGH;
-    }
-
-    heaterRelay.off();
-    valveRelay.off();
-    pumpRelay.off();
-
-    if (FEATURE_POWERSWITCH) {
-        powerSwitch = new IOSwitch(PIN_POWERSWITCH, GPIOPin::IN_HARDWARE, POWERSWITCH_TYPE, POWERSWITCH_MODE);
-    }
-
-    if (FEATURE_STEAMSWITCH) {
-        steamSwitch = new IOSwitch(PIN_STEAMSWITCH, GPIOPin::IN_HARDWARE, STEAMSWITCH_TYPE, STEAMSWITCH_MODE);
-    }
-
-    // IF optocoupler selected
-    if (BREWDETECTION_TYPE == 3) {
-        if (optocouplerType == HIGH) {
-            pinMode(PIN_BREWSWITCH, INPUT_PULLDOWN);
-        }
-        else {
-            pinMode(PIN_BREWSWITCH, INPUT_PULLUP);
-        }
-    }
-    else if (FEATURE_BREWSWITCH) {
-        brewSwitch = new IOSwitch(PIN_BREWSWITCH, GPIOPin::IN_HARDWARE, BREWSWITCH_TYPE, BREWSWITCH_MODE);
-    }
-
-    if (LED_TYPE == LED::STANDARD) {
-        statusLedPin = new GPIOPin(PIN_STATUSLED, GPIOPin::OUT);
-        brewLedPin = new GPIOPin(PIN_BREWLED, GPIOPin::OUT);
-
-        statusLed = new StandardLED(*statusLedPin);
-        brewLed = new StandardLED(*brewLedPin);
-    }
-    else {
-        // TODO Addressable LEDs
-    }
-
-    if (FEATURE_WATER_SENS == 1) {
-        waterSensor = new IOSwitch(PIN_WATERSENSOR, (WATER_SENS_TYPE == Switch::NORMALLY_OPEN ? GPIOPin::IN_PULLDOWN : GPIOPin::IN_PULLUP), Switch::TOGGLE, WATER_SENS_TYPE);
-    }
-
-#if OLED_DISPLAY != 0
-    u8g2.setI2CAddress(oled_i2c * 2);
-    u8g2.begin();
-    u8g2_prepare();
-    displayLogo(String("Version "), String(sysVersion));
-    delay(2000); // caused crash with wifi manager on esp8266, should be ok on esp32
-#endif
-
-    // Fallback offline
-    if (connectmode == 1) { // WiFi Mode
-        wiFiSetup();
-        websiteSetup();
-
-        // OTA Updates
-        if (ota && WiFi.status() == WL_CONNECTED) {
-            ArduinoOTA.setHostname(hostname); //  Device name for OTA
-            ArduinoOTA.setPassword(OTApass);  //  Password for OTA
-            ArduinoOTA.begin();
-        }
-
-        if (FEATURE_MQTT == 1) {
-            snprintf(topic_will, sizeof(topic_will), "%s%s/%s", mqtt_topic_prefix, hostname, "status");
-            snprintf(topic_set, sizeof(topic_set), "%s%s/+/%s", mqtt_topic_prefix, hostname, "set");
-            mqtt.setServer(mqtt_server_ip, mqtt_server_port);
-            mqtt.setCallback(mqtt_callback);
-            checkMQTT();
-#if MQTT_HASSIO_SUPPORT == 1 // Send Home Assistant MQTT discovery messages
-            sendHASSIODiscoveryMsg();
-#endif
-        }
-    }
-    else if (connectmode == 0) {
-        wm.disconnect();            // no wm
-        readSysParamsFromStorage(); // get all parameters from storage
-        offlineMode = 1;            // offline mode
-        pidON = 1;                  // pid on
-    }
-
-    // Start the logger
-    Logger::begin();
-    Logger::setLevel(LOGLEVEL);
-
-    // Initialize PID controller
-    bPID.SetSampleTime(windowSize);
-    bPID.SetOutputLimits(0, windowSize);
-    bPID.SetIntegratorLimits(0, AGGIMAX);
-    bPID.SetSmoothingFactor(EMA_FACTOR);
-    bPID.SetMode(AUTOMATIC);
-
-    if (TEMP_SENSOR == 1) {
-        tempSensor = new TempSensorDallas(PIN_TEMPSENSOR);
-    }
-    else if (TEMP_SENSOR == 2) {
-        tempSensor = new TempSensorTSIC(PIN_TEMPSENSOR);
-    }
-
-    temperature = tempSensor->getCurrentTemperature();
-
-    temperature -= brewTempOffset;
-
-// Init Scale
-#if FEATURE_SCALE == 1
-    initScale();
-#endif
-
-    // Initialisation MUST be at the very end of the init(), otherwise the
-    // time comparision in loop() will have a big offset
-    unsigned long currentTime = millis();
-    previousMillistemp = currentTime;
-    windowStartTime = currentTime;
-    previousMillisMQTT = currentTime;
-    previousMillisOptocouplerReading = currentTime;
-    lastMQTTConnectionAttempt = currentTime;
-
-#if FEATURE_SCALE == 1
-    previousMillisScale = currentTime;
-#endif
-
-#if (FEATURE_PRESSURESENSOR == 1)
-    previousMillisPressure = currentTime;
-#endif
-
-    setupDone = true;
-
-    enableTimer1();
-
-    double fsUsage = ((double)LittleFS.usedBytes() / LittleFS.totalBytes()) * 100;
-    LOGF(INFO, "LittleFS: %d%% (used %ld bytes from %ld bytes)", (int)ceil(fsUsage), LittleFS.usedBytes(), LittleFS.totalBytes());
-}
-
-void loop() {
-    // Accept potential connections for remote logging
-    Logger::update();
-
-    // Update water sensor
-    loopWater();
-
-    // Update PID settings & machine state
-    looppid();
-
-    // Update LED output based on machine state
-    loopLED();
-}
-
-void looppid() {
-    // Only do Wifi stuff, if Wifi is connected
-    if (WiFi.status() == WL_CONNECTED && offlineMode == 0) {
-        if (FEATURE_MQTT == 1) {
-            checkMQTT();
-            writeSysParamsToMQTT(true); // Continue on error
-
-            if (mqtt.connected() == 1) {
-                mqtt.loop();
-#if MQTT_HASSIO_SUPPORT == 1
-                hassioDiscoveryTimer();
-#endif
-                mqtt_was_connected = true;
-            }
-            // Supress debug messages until we have a connection etablished
-            else if (mqtt_was_connected) {
-                LOG(INFO, "MQTT disconnected");
-                mqtt_was_connected = false;
-            }
-        }
-
-        ArduinoOTA.handle(); // For OTA
-
-        // Disable interrupt if OTA is starting, otherwise it will not work
-        ArduinoOTA.onStart([]() {
-            disableTimer1();
-            heaterRelay.off();
-        });
-
-        ArduinoOTA.onError([](ota_error_t error) { enableTimer1(); });
-
-        // Enable interrupts if OTA is finished
-        ArduinoOTA.onEnd([]() { enableTimer1(); });
-
-        wifiReconnects = 0; // reset wifi reconnects if connected
-    }
-    else {
-        checkWifi();
-    }
-
-    // Update the temperature:
-    temperature = tempSensor->getCurrentTemperature();
-
-    if (machineState != kSteam) {
-        temperature -= brewTempOffset;
-    }
-
-    testEmergencyStop(); // test if temp is too high
-    bPID.Compute();      // the variable pidOutput now has new values from PID (will be written to heater pin in ISR.cpp)
-
-    if ((millis() - lastTempEvent) > tempEventInterval) {
-        // send temperatures to website endpoint
-        sendTempEvent(temperature, brewSetpoint, pidOutput / 10); // pidOutput is promill, so /10 to get percent value
-        lastTempEvent = millis();
-
-        if (pidON) {
-            LOGF(TRACE, "Current PID mode: %s", bPID.GetPonE() ? "PonE" : "PonM");
-
-            // P-Part
-            LOGF(TRACE, "Current PID input error: %f", bPID.GetInputError());
-            LOGF(TRACE, "Current PID P part: %f", bPID.GetLastPPart());
-            LOGF(TRACE, "Current PID kP: %f", bPID.GetKp());
-            // I-Part
-            LOGF(TRACE, "Current PID I sum: %f", bPID.GetLastIPart());
-            LOGF(TRACE, "Current PID kI: %f", bPID.GetKi());
-            // D-Part
-            LOGF(TRACE, "Current PID diff'd input: %f", bPID.GetDeltaInput());
-            LOGF(TRACE, "Current PID D part: %f", bPID.GetLastDPart());
-            LOGF(TRACE, "Current PID kD: %f", bPID.GetKd());
-
-            // Combined PID output
-            LOGF(TRACE, "Current PID Output: %f", pidOutput);
-            LOGF(TRACE, "Current Machinestate: %s", machinestateEnumToString(machineState));
-            LOGF(TRACE, "timeBrewed %f", timeBrewed);
-            LOGF(TRACE, "brewtimesoftware %f", brewtimesoftware);
-            LOGF(TRACE, "isBrewDetected %i", isBrewDetected);
-            LOGF(TRACE, "brewDetectionMode %i", brewDetectionMode);
-        }
-    }
-
-#if FEATURE_SCALE == 1
-    checkWeight();    // Check Weight Scale in the loop
-    shottimerscale(); // Calculation of weight of shot while brew is running
-#endif
-
-#if (FEATURE_BREWCONTROL == 1)
-    brew();
-#endif
-
-#if (FEATURE_PRESSURESENSOR == 1)
-    unsigned long currentMillisPressure = millis();
-
-    if (currentMillisPressure - previousMillisPressure >= intervalPressure) {
-        previousMillisPressure = currentMillisPressure;
-        inputPressure = measurePressure();
-        inputPressureFilter = filterPressureValue(inputPressure);
-    }
-#endif
-
-    checkSteamSwitch();
-    checkPowerSwitch();
-
-    // set setpoint depending on steam or brew mode
-    if (steamON == 1) {
-        setpoint = steamSetpoint;
-    }
-    else if (steamON == 0) {
-        setpoint = brewSetpoint;
-    }
-
-    updateStandbyTimer();
-
-    handleMachineState();
-
-    // Check if PID should run or not. If not, set to manual and force output to zero
-#if OLED_DISPLAY != 0
-    printDisplayTimer();
-#endif
-
-    if (machineState == kPidDisabled || machineState == kWaterEmpty || machineState == kSensorError || machineState == kEmergencyStop || machineState == kEepromError || machineState == kStandby || brewPIDDisabled) {
-        if (bPID.GetMode() == 1) {
-            // Force PID shutdown
-            bPID.SetMode(0);
-            pidOutput = 0;
-            heaterRelay.off();
-        }
-    }
-    else { // no sensorerror, no pid off or no Emergency Stop
-        if (bPID.GetMode() == 0) {
-            bPID.SetMode(1);
-        }
-    }
-
-    // Regular PID operation
-    if (machineState == kPidNormal) {
-        if (usePonM) {
-            if (startTn != 0) {
-                startKi = startKp / startTn;
-            }
-            else {
-                startKi = 0;
-            }
-
-            if (lastmachinestatepid != machineState) {
-                LOGF(DEBUG, "new PID-Values: P=%.1f  I=%.1f  D=%.1f", startKp, startKi, 0.0);
-                lastmachinestatepid = machineState;
-            }
-
-            bPID.SetTunings(startKp, startKi, 0, P_ON_M);
-        }
-        else {
-            setNormalPIDTunings();
-        }
-    }
-
-    // BD PID
-    if (machineState >= kBrew && machineState <= kBrewDetectionTrailing) {
-        if (brewPIDDelay > 0 && timeBrewed > 0 && timeBrewed < brewPIDDelay * 1000) {
-            // disable PID for brewPIDDelay seconds, enable PID again with new tunings after that
-            if (!brewPIDDisabled) {
-                brewPIDDisabled = true;
-                bPID.SetMode(MANUAL);
-                LOGF(DEBUG, "disabled PID, waiting for %d seconds before enabling PID again", brewPIDDelay);
-            }
-        }
-        else {
-            if (brewPIDDisabled) {
-                // enable PID again
-                bPID.SetMode(AUTOMATIC);
-                brewPIDDisabled = false;
-                LOG(DEBUG, "Enabled PID again after delay");
-            }
-
-            if (useBDPID) {
-                setBDPIDTunings();
-            }
-            else {
-                setNormalPIDTunings();
-            }
-        }
-    }
-
-    // Steam on
-    if (machineState == kSteam) {
-        if (lastmachinestatepid != machineState) {
-            LOGF(DEBUG, "new PID-Values: P=%.1f  I=%.1f  D=%.1f", 150.0, 0.0, 0.0);
-            lastmachinestatepid = machineState;
-        }
-
-        bPID.SetTunings(steamKp, 0, 0, 1);
-    }
-    // sensor error OR Emergency Stop
-}
-
-void loopLED() {
-    if (FEATURE_STATUS_LED) {
-        if ((machineState == kPidNormal && (fabs(temperature - setpoint) < 0.3)) || (temperature > 115 && fabs(temperature - setpoint) < 5)) {
-            statusLed->turnOn();
-        }
-        else {
-            statusLed->turnOff();
-        }
-    }
-
-    if (FEATURE_BREW_LED) {
-        if (machineState == kBrew) {
-            brewLed->turnOn();
-        }
-        else {
-            brewLed->turnOff();
-        }
-    }
-}
-
-void checkWater() {
-    if (FEATURE_WATER_SENS != 1) {
-        return;
-    }
-
-    bool isWaterDetected = waterSensor->isPressed();
-
-    if (isWaterDetected && !waterFull) {
-        waterFull = true;
-        LOG(INFO, "Water full");
-    }
-    else if (!isWaterDetected && waterFull) {
-        waterFull = false;
-        LOG(WARNING, "Water empty");
-    }
-}
-
-void setBackflush(int backflush) {
-    backflushOn = backflush;
-}
-
-#if FEATURE_SCALE == 1
-void setScaleCalibration(int calibration) {
-    scaleCalibrationOn = calibration;
-}
-
-void setScaleTare(int tare) {
-    scaleTareOn = tare;
-}
-#endif
-
-void setSteamMode(int steamMode) {
-    steamON = steamMode;
-
-    if (steamON == 1) {
-        steamFirstON = 1;
-    }
-
-    if (steamON == 0) {
-        steamFirstON = 0;
-    }
-}
-
-void setPidStatus(int pidStatus) {
-    pidON = pidStatus;
-    writeSysParamsToStorage();
-}
-
-void setNormalPIDTunings() {
-    // Prevent overwriting of brewdetection values
-    // calc ki, kd
-    if (aggTn != 0) {
-        aggKi = aggKp / aggTn;
-    }
-    else {
-        aggKi = 0;
-    }
-
-    aggKd = aggTv * aggKp;
-
-    bPID.SetIntegratorLimits(0, aggIMax);
-
-    if (lastmachinestatepid != machineState) {
-        LOGF(DEBUG, "new PID-Values: P=%.1f  I=%.1f  D=%.1f", aggKp, aggKi, aggKd);
-        lastmachinestatepid = machineState;
-    }
-
-    bPID.SetTunings(aggKp, aggKi, aggKd, 1);
-}
-
-void setBDPIDTunings() {
-    // calc ki, kd
-    if (aggbTn != 0) {
-        aggbKi = aggbKp / aggbTn;
-    }
-    else {
-        aggbKi = 0;
-    }
-
-    aggbKd = aggbTv * aggbKp;
-
-    if (lastmachinestatepid != machineState) {
-        LOGF(DEBUG, "new PID-Values: P=%.1f  I=%.1f  D=%.1f", aggbKp, aggbKi, aggbKd);
-        lastmachinestatepid = machineState;
-    }
-
-    bPID.SetTunings(aggbKp, aggbKi, aggbKd, 1);
-}
-
-/**
- * @brief Reads all system parameter values from non-volatile storage
- *
- * @return 0 = success, < 0 = failure
- */
-int readSysParamsFromStorage(void) {
-    if (sysParaPidOn.getStorage() != 0) return -1;
-    if (sysParaUsePonM.getStorage() != 0) return -1;
-    if (sysParaPidKpStart.getStorage() != 0) return -1;
-    if (sysParaPidTnStart.getStorage() != 0) return -1;
-    if (sysParaPidKpReg.getStorage() != 0) return -1;
-    if (sysParaPidTnReg.getStorage() != 0) return -1;
-    if (sysParaPidTvReg.getStorage() != 0) return -1;
-    if (sysParaPidIMaxReg.getStorage() != 0) return -1;
-    if (sysParaBrewSetpoint.getStorage() != 0) return -1;
-    if (sysParaTempOffset.getStorage() != 0) return -1;
-    if (sysParaBrewPIDDelay.getStorage() != 0) return -1;
-    if (sysParaUseBDPID.getStorage() != 0) return -1;
-    if (sysParaPidKpBd.getStorage() != 0) return -1;
-    if (sysParaPidTnBd.getStorage() != 0) return -1;
-    if (sysParaPidTvBd.getStorage() != 0) return -1;
-    if (sysParaBrewTime.getStorage() != 0) return -1;
-    if (sysParaBrewSwTime.getStorage() != 0) return -1;
-    if (sysParaBrewThresh.getStorage() != 0) return -1;
-    if (sysParaPreInfTime.getStorage() != 0) return -1;
-    if (sysParaPreInfPause.getStorage() != 0) return -1;
-    if (sysParaPidKpSteam.getStorage() != 0) return -1;
-    if (sysParaSteamSetpoint.getStorage() != 0) return -1;
-    if (sysParaWeightSetpoint.getStorage() != 0) return -1;
-    if (sysParaWifiCredentialsSaved.getStorage() != 0) return -1;
-    if (sysParaStandbyModeOn.getStorage() != 0) return -1;
-    if (sysParaStandbyModeTime.getStorage() != 0) return -1;
-    if (sysParaScaleCalibration.getStorage() != 0) return -1;
-    if (sysParaScale2Calibration.getStorage() != 0) return -1;
-    if (sysParaScaleKnownWeight.getStorage() != 0) return -1;
-    if (sysParaBackflushCycles.getStorage() != 0) return -1;
-    if (sysParaBackflushFillTime.getStorage() != 0) return -1;
-    if (sysParaBackflushFlushTime.getStorage() != 0) return -1;
-
-    return 0;
-}
-
-/**
- * @brief Writes all current system parameter values to non-volatile storage
- *
- * @return 0 = success, < 0 = failure
- */
-int writeSysParamsToStorage(void) {
-    if (sysParaPidOn.setStorage() != 0) return -1;
-    if (sysParaUsePonM.setStorage() != 0) return -1;
-    if (sysParaPidKpStart.setStorage() != 0) return -1;
-    if (sysParaPidTnStart.setStorage() != 0) return -1;
-    if (sysParaPidKpReg.setStorage() != 0) return -1;
-    if (sysParaPidTnReg.setStorage() != 0) return -1;
-    if (sysParaPidTvReg.setStorage() != 0) return -1;
-    if (sysParaPidIMaxReg.setStorage() != 0) return -1;
-    if (sysParaBrewSetpoint.setStorage() != 0) return -1;
-    if (sysParaTempOffset.setStorage() != 0) return -1;
-    if (sysParaBrewPIDDelay.setStorage() != 0) return -1;
-    if (sysParaUseBDPID.setStorage() != 0) return -1;
-    if (sysParaPidKpBd.setStorage() != 0) return -1;
-    if (sysParaPidTnBd.setStorage() != 0) return -1;
-    if (sysParaPidTvBd.setStorage() != 0) return -1;
-    if (sysParaBrewTime.setStorage() != 0) return -1;
-    if (sysParaBrewSwTime.setStorage() != 0) return -1;
-    if (sysParaBrewThresh.setStorage() != 0) return -1;
-    if (sysParaPreInfTime.setStorage() != 0) return -1;
-    if (sysParaPreInfPause.setStorage() != 0) return -1;
-    if (sysParaPidKpSteam.setStorage() != 0) return -1;
-    if (sysParaSteamSetpoint.setStorage() != 0) return -1;
-    if (sysParaWeightSetpoint.setStorage() != 0) return -1;
-    if (sysParaWifiCredentialsSaved.setStorage() != 0) return -1;
-    if (sysParaStandbyModeOn.setStorage() != 0) return -1;
-    if (sysParaStandbyModeTime.setStorage() != 0) return -1;
-    if (sysParaScaleCalibration.setStorage() != 0) return -1;
-    if (sysParaScale2Calibration.setStorage() != 0) return -1;
-    if (sysParaScaleKnownWeight.setStorage() != 0) return -1;
-    if (sysParaBackflushCycles.setStorage() != 0) return -1;
-    if (sysParaBackflushFillTime.setStorage() != 0) return -1;
-    if (sysParaBackflushFlushTime.setStorage() != 0) return -1;
-
-    return storageCommit();
-}
-
-/**
- * @brief Performs a factory reset.
- *
- * @return 0 = success, < 0 = failure
- */
-int factoryReset(void) {
-    int stoStatus;
-
-    if ((stoStatus = storageFactoryReset()) != 0) {
-        return stoStatus;
-    }
-
-    return readSysParamsFromStorage();
 }

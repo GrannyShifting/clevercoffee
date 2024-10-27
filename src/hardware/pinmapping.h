@@ -17,16 +17,28 @@
 #define PIN_STEAMSWITCH 35
 #define PIN_WATERSWITCH 36
 
-#define PIN_ROTARY_DT  4 // Rotary encoder data pin
-#define PIN_ROTARY_CLK 3 // Rotary encoder clock pin
-#define PIN_ROTARY_SW  5 // Rotary encoder switch
+// Rotary encoder switch
+#define PIN_ROTARY_DT  26 
+#define PIN_ROTARY_CLK 27 
+#define PIN_ROTARY_SW  25 
+#define PIN_ENCODER_VCC -1 
+#define ROTARY_ENCODER_STEPS 4 
 
 // Sensors
 #define PIN_TEMPSENSOR  16
 #define PIN_WATERSENSOR 23
 #define PIN_HXDAT       32 // Brew scale data pin 1
-#define PIN_HXDAT2      25 // Brew scale data pin 2
+#define PIN_HXDAT2      30 // Brew scale data pin 2
 #define PIN_HXCLK       33 // Brew scale clock pin
+
+// Adafruit library for K-type thermocouple
+// Bit-bangs the SPI-compatible interface
+// 3.3V-5V
+#define PIN_THERM_SCK   4 // K-Type Thermocouple
+#define PIN_THERM_CS    2 // K-Type Thermocouple
+#define PIN_THERM_SO    15 // K-Type Thermocouple
+
+
 
 /**
  * Output pins
@@ -34,11 +46,20 @@
 
 // Relays
 #define PIN_VALVE  17
-#define PIN_PUMP   27
-#define PIN_HEATER 2
+#define PIN_PUMP   18
+#define PIN_HEATER 5
+
+
+
+
+
+
+
+
+
 
 // LEDs
-#define PIN_STATUSLED 26
+#define PIN_STATUSLED 31
 #define PIN_BREWLED   19
 #define PIN_STEAMLED  1
 
