@@ -201,10 +201,10 @@ function makeTempChart(data) {
     const opts = {
         title: "Temperature History",
         ...getSize(chartDiv),
-        tzDate: ts => uPlot.tzDate(new Date(ts * 1e3), 'Europe/Berlin'),
+        tzDate: ts => uPlot.tzDate(new Date(ts * 1e3), 'America/Los_Angeles'),
         series: [
             {
-                value: "{YYYY}-{MM}-{DD} {HH}:{mm}:{ss}"
+                value: "{YYYY}-{MM}-{DD} {h}:{mm}:{ss} {AA}"
             },
             Object.assign({
                 label: "Current Temperature",
@@ -236,7 +236,7 @@ function makeTempChart(data) {
         ],
         axes: [
             {
-                values: (u, vals, space) => vals.map(v => uPlot.tzDate(new Date(v * 1e3), 'Europe/Berlin').toLocaleString("de-DE", tzdateOptions)),
+                values: (u, vals, space) => vals.map(v => uPlot.tzDate(new Date(v * 1e3), 'America/Los_Angeles').toLocaleString("en-US", tzdateOptions)),
             },
             {
                 scale: 'C',
@@ -252,7 +252,7 @@ function makeHeaterChart(data) {
     const opts = {
         title: "Heater Power History",
         ...getSize(heaterDiv),
-        tzDate: ts => uPlot.tzDate(new Date(ts * 1e3), 'Europe/Berlin'),
+        tzDate: ts => uPlot.tzDate(new Date(ts * 1e3), 'America/Los_Angeles'),
         scales: {
             "%": {
                 auto: false,
@@ -261,7 +261,7 @@ function makeHeaterChart(data) {
         },
         series: [
             {
-                value: "{YYYY}-{MM}-{DD} {HH}:{mm}:{ss}"
+                value: "{YYYY}-{MM}-{DD} {h}:{mm}:{ss} {AA}"
             },
             {
                 label: "Heater Power",
@@ -279,7 +279,7 @@ function makeHeaterChart(data) {
         ],
         axes: [
             {
-                values: (u, vals, space) => vals.map(v => uPlot.tzDate(new Date(v * 1e3), 'Europe/Berlin').toLocaleString("de-DE", tzdateOptions)),
+                values: (u, vals, space) => vals.map(v => uPlot.tzDate(new Date(v * 1e3), 'America/Los_Angeles').toLocaleString("en-US", tzdateOptions)),
             },
             {
                 side: 3,

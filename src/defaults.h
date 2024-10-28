@@ -44,7 +44,7 @@ int writeSysParamsToStorage(void);
 #define PRE_INFUSION_PAUSE_TIME   5      // pre-infusion pause time in seconds
 #define SCALE_WEIGHTSETPOINT      30     // Target weight in grams
 #define WIFI_CREDENTIALS_SAVED    0      // Flag if wifi setup is done. 0: not set up, 1: credentials set up via wifi manager
-#define STANDBY_MODE_ON           0      // Standby mode off by default
+#define STANDBY_MODE_ON           1      // Standby mode on by default
 #define STANDBY_MODE_TIME         30     // Time in minutes until the heater is turned off
 #define BACKFLUSH_CYCLES          5      // number of cycles the backflush should run
 #define BACKFLUSH_FILL_TIME       5      // time in seconds the pump is running during backflush
@@ -92,7 +92,7 @@ int writeSysParamsToStorage(void);
 #define WEIGHTSETPOINT_MAX       500
 #define PID_KP_STEAM_MIN         0
 #define PID_KP_STEAM_MAX         500
-#define STANDBY_MODE_TIME_MIN    30
+#define STANDBY_MODE_TIME_MIN    1
 #define STANDBY_MODE_TIME_MAX    120
 #define BACKFLUSH_CYCLES_MIN     2
 #define BACKFLUSH_CYCLES_MAX     20

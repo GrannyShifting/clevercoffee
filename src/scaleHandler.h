@@ -11,6 +11,7 @@
 void scaleCalibrate(HX711_ADC loadCell, int pin, sto_item_id_t name, float* calibration) {
     loadCell.setCalFactor(1.0);
     u8g2.clearBuffer();
+    u8g2.setFont(u8g2_font_profont10_tf);
     u8g2.drawStr(0, 22, "Calibration coming up");
     u8g2.drawStr(0, 32, "Empty scale ");
     u8g2.print(pin, 0);
@@ -94,6 +95,7 @@ void checkWeight() {
     if (scaleTareOn) {
         scaleTareOn = 0;
         u8g2.clearBuffer();
+        u8g2.setFont(u8g2_font_profont10_tf);
         u8g2.drawStr(0, 2, "Taring scale,");
         u8g2.drawStr(0, 12, "remove any load!");
         u8g2.drawStr(0, 22, "....");

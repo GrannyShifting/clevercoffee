@@ -6,7 +6,7 @@
 
 #pragma once
 
-#define TIME_TO_DISPLAY_OFF 10
+#define TIME_TO_DISPLAY_OFF 1
 
 unsigned long standbyModeStartTimeMillis = millis();
 unsigned long standbyModeRemainingTimeMillis = standbyModeTime * 60 * 1000;
@@ -24,7 +24,7 @@ void updateStandbyTimer(void) {
         unsigned long standbyModeTimeMillis = standbyModeTime * 60 * 1000;
         long elapsedTime = currentTime - standbyModeStartTimeMillis;
         lastStandbyTimeMillis = currentTime;
-
+        
         if (standbyModeTimeMillis > elapsedTime) {
             standbyModeRemainingTimeMillis = standbyModeTimeMillis - elapsedTime;
 
@@ -34,11 +34,12 @@ void updateStandbyTimer(void) {
         }
         else {
             standbyModeRemainingTimeMillis = 0;
+            resetOLEDStandbyTimer();
             LOG(INFO, "Entering standby mode...");
         }
     }
     else if ((standbyModeRemainingTimeDisplayOffMillis != 0) && ((currentTime % 1000) == 0) && (currentTime != lastStandbyTimeMillis)) {
-        unsigned long standbyModeTimeMillis = (standbyModeTime * 60 * 1000) + (TIME_TO_DISPLAY_OFF * 60 * 1000);
+        unsigned long standbyModeTimeMillis = TIME_TO_DISPLAY_OFF * 60 * 1000;
         long elapsedTime = currentTime - standbyModeStartTimeMillis;
         lastStandbyTimeMillis = currentTime;
 
@@ -56,10 +57,14 @@ void updateStandbyTimer(void) {
     }
 }
 
-void resetStandbyTimer(void) {
+void resetMachineStandbyTimer(void) {
     standbyModeRemainingTimeMillis = standbyModeTime * 60 * 1000;
-    standbyModeRemainingTimeDisplayOffMillis = TIME_TO_DISPLAY_OFF * 60 * 1000;
     standbyModeStartTimeMillis = millis();
 
     LOGF(INFO, "Resetting standby timer to %i minutes", (int)standbyModeTime);
+}
+
+void resetOLEDStandbyTimer(void) {
+    standbyModeRemainingTimeDisplayOffMillis = TIME_TO_DISPLAY_OFF * 60 * 1000;
+    standbyModeStartTimeMillis = millis();
 }

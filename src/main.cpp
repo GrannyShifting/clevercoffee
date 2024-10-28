@@ -23,6 +23,7 @@
 #include <U8g2lib.h> // i2c display
 #include <WiFiManager.h>
 #include <os.h>
+#include "time.h"
 
 // Includes
 #include "display/bitmaps.h" // user icons for display
@@ -192,6 +193,7 @@ void setBDPIDTunings();
 void loopcalibrate();
 void looppid();
 void loopLED();
+void loopRotEnc();
 void checkWater();
 void printMachineState();
 char const* machinestateEnumToString(MachineState machineState);
@@ -204,9 +206,12 @@ char* number2string(unsigned int in);
 float filterPressureValue(float input);
 int writeSysParamsToMQTT(bool continueOnError);
 void updateStandbyTimer(void);
-void resetStandbyTimer(void);
+void resetMachineStandbyTimer(void);
+void resetOLEDStandbyTimer(void);
 void initWebVars(void);
 void initMQTT(void);
+void checkMillisOverflow(void);
+void printLocalTime(void);
 
 // system parameters
 uint8_t pidON = 0; // 1 = control loop in closed loop
@@ -247,7 +252,7 @@ double brewtimesoftware = BREW_SW_TIME;  // use userConfig time until disabling 
 double brewSensitivity = BD_SENSITIVITY; // use userConfig brew detection sensitivity
 double brewPIDDelay = BREW_PID_DELAY;    // use userConfig brew detection PID delay
 
-uint8_t standbyModeOn = 0;
+uint8_t standbyModeOn = 1;
 double standbyModeTime = STANDBY_MODE_TIME;
 
 #include "standby.h"
@@ -442,6 +447,30 @@ Timer printDisplayTimer(&printScreen, 100);
 #include "powerHandler.h"
 #include "scaleHandler.h"
 #include "steamHandler.h"
+
+// If millis() gets too close to max unsigned long uint32 value. Primitively reset to avoid issues.
+// Proper fix is to refactor the millis() variables to subtract instead of compare directly.
+void checkMillisOverflow(){
+    if (millis() > 4294900000){
+        pidON=0;
+        sysParaPidOn.setStorage();
+        ESP.restart();
+    }
+}
+
+const char* ntpServer = "pool.ntp.org";
+const long  gmtOffset_sec = -28800;
+const int   daylightOffset_sec = 3600;
+
+void printLocalTime()
+{
+  struct tm timeinfo;
+  if(!getLocalTime(&timeinfo)){
+    Serial.println("Failed to obtain time");
+    return;
+  }
+  Serial.println(&timeinfo, "%A, %B %d %Y %h:%M:%S");
+}
 
 // Emergency stop if temp is too high
 void testEmergencyStop() {
@@ -742,7 +771,8 @@ void handleMachineState() {
                 machineState = kBrew;
 
                 if (standbyModeOn) {
-                    resetStandbyTimer();
+                    resetMachineStandbyTimer();
+                    resetOLEDStandbyTimer();
                 }
             }
 
@@ -750,7 +780,8 @@ void handleMachineState() {
                 machineState = kSteam;
 
                 if (standbyModeOn) {
-                    resetStandbyTimer();
+                    resetMachineStandbyTimer();
+                    resetOLEDStandbyTimer();
                 }
             }
 
@@ -758,7 +789,8 @@ void handleMachineState() {
                 machineState = kBackflush;
 
                 if (standbyModeOn) {
-                    resetStandbyTimer();
+                    resetMachineStandbyTimer();
+                    resetOLEDStandbyTimer();
                 }
             }
 
@@ -995,7 +1027,8 @@ void handleMachineState() {
 
             if (pidON || steamON || isBrewDetected) {
                 pidON = 1;
-                resetStandbyTimer();
+                resetMachineStandbyTimer();
+                resetOLEDStandbyTimer();
 #if OLED_DISPLAY != 0
                 u8g2.setPowerSave(0);
 #endif
@@ -1228,6 +1261,8 @@ void setup() {
     if (connectmode == 1) { // WiFi Mode
         wiFiSetup();
         websiteSetup();
+        configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
+
 
         // OTA Updates
         if (ota && WiFi.status() == WL_CONNECTED) {
@@ -1328,14 +1363,9 @@ void loop() {
     // Update LED output based on machine state
     loopLED();
 
+    loopRotEnc();
 
-    long encoderVal = rotaryEncoder.encoderChanged();
-    if (encoderVal != 0) {
-        displayMessage("", "", "", String(encoderVal), "", "");
-    }
-
-    if (rotaryEncoder.isEncoderButtonClicked())
-        Serial.println("pressed");
+    printLocalTime();
 
     // pumpRelay.on();
     // delay(1000);
@@ -1378,6 +1408,8 @@ void looppid() {
         // Enable interrupts if OTA is finished
         ArduinoOTA.onEnd([]() { enableTimer1(); });
 
+
+
         wifiReconnects = 0; // reset wifi reconnects if connected
     }
     else {
@@ -1390,7 +1422,7 @@ void looppid() {
     if (machineState != kSteam) {
         temperature -= brewTempOffset;
     }
-
+    checkMillisOverflow();
     testEmergencyStop(); // test if temp is too high
     bPID.Compute();      // the variable pidOutput now has new values from PID (will be written to heater pin in ISR.cpp)
 
@@ -1555,6 +1587,27 @@ void loopLED() {
         else {
             brewLed->turnOff();
         }
+    }
+}
+
+void loopRotEnc () {
+    long encoderVal = rotaryEncoder.encoderChanged();
+
+    if (encoderVal != 0) {
+        displayMessage("", "", "", String(encoderVal), "", "");
+    }
+
+    if (rotaryEncoder.isEncoderButtonClicked()) {
+        if (machineState == kStandby && standbyModeRemainingTimeDisplayOffMillis == 0){
+            resetOLEDStandbyTimer();
+            u8g2.setPowerSave(0);
+            return;
+        }
+
+        // if () {
+            
+        // }
+
     }
 }
 
