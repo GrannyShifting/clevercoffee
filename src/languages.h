@@ -27,15 +27,15 @@ static const char* langstring_waterempty = "Wasser leer";
 #endif
 
 static const char* langstring_wifirecon = "Wifi reconnect:";
-static const char* langstring_connectwifi1 = "1: Verbinde WLAN:";
-static const char* langstring_nowifi[] = {"Kein ", "WLAN"};
+static const char* langstring_connectwifi1 = "1: Connect WLAN:";
+static const char* langstring_nowifi[] = {"No ", "WLAN"};
 
-static const char* langstring_error_tsensor[] = {"Fehler, Temp: ", "Temp.-Sensor ueberpruefen!"};
+static const char* langstring_error_tsensor[] = {"Error, Temp: ", "Temp.-Sensor check!"};
 // static const char *langstring_emergencyStop[] = {"HEATING", "STOPPED"};
 
-static const char* langstring_backflush_press = "Bruehsch. druecken";
-static const char* langstring_backflush_start = "um zu starten...";
-static const char* langstring_backflush_finish = "um zu beenden...";
+static const char* langstring_backflush_press = "Press";
+static const char* langstring_backflush_start = "to start...";
+static const char* langstring_backflush_finish = "to finish...";
 
 #elif LANGUAGE == 1         // EN
 #if (DISPLAYTEMPLATE <= 4)

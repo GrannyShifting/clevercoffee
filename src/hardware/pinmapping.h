@@ -13,7 +13,7 @@
 
 // Switches/Buttons
 #define PIN_POWERSWITCH -1
-#define PIN_BREWSWITCH  14
+#define PIN_BREWSWITCH  -1
 #define PIN_STEAMSWITCH -1
 #define PIN_WATERSWITCH -1
 

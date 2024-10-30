@@ -19,7 +19,8 @@ class Switch {
          */
         enum Type {
             MOMENTARY,
-            TOGGLE
+            TOGGLE,
+            SW_TRIG
         };
 
         /**
@@ -31,6 +32,7 @@ class Switch {
         enum Mode {
             NORMALLY_OPEN = 0,
             NORMALLY_CLOSED = 1,
+            SW_MODE = 3,
         };
 
         /**
@@ -46,6 +48,7 @@ class Switch {
 
         virtual bool isPressed() = 0;
         virtual bool longPressDetected() = 0;
+        virtual void setState(uint8_t state)  = 0;
 
     protected:
         Type type_;

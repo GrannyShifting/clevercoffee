@@ -292,6 +292,15 @@ void serverSetup() {
     });
 #endif
 
+    server.on("/toggleScheduler", HTTP_POST, [](AsyncWebServerRequest* request) {
+        int status = flipUintValue(scheduler);
+
+        setSchedulerStatus(status);
+        LOGF(DEBUG, "Toggle scheduler mode: %i", status);
+
+        request->redirect("/");
+    });
+
     server.on("/parameters", HTTP_GET | HTTP_POST, [](AsyncWebServerRequest* request) {
         // Determine the size of the document to allocate based on the number
         // of parameters

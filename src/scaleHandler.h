@@ -94,22 +94,22 @@ void checkWeight() {
 
     if (scaleTareOn) {
         scaleTareOn = 0;
-        u8g2.clearBuffer();
-        u8g2.setFont(u8g2_font_profont10_tf);
-        u8g2.drawStr(0, 2, "Taring scale,");
-        u8g2.drawStr(0, 12, "remove any load!");
-        u8g2.drawStr(0, 22, "....");
-        delay(2000);
-        u8g2.sendBuffer();
+        // u8g2.clearBuffer();
+        // u8g2.setFont(u8g2_font_profont10_tf);
+        // u8g2.drawStr(0, 2, "Taring scale,");
+        // u8g2.drawStr(0, 12, "remove any load!");
+        // u8g2.drawStr(0, 22, "....");
+        // delay(2000);
+        // u8g2.sendBuffer();
         LoadCell.tare();
         LoadCell.setCalFactor(scaleCalibration);
 #if SCALE_TYPE == 0
         LoadCell2.setCalFactor(scale2Calibration);
         LoadCell2.tare();
 #endif
-        u8g2.drawStr(0, 32, "done");
-        u8g2.sendBuffer();
-        delay(2000);
+        // u8g2.drawStr(0, 32, "done");
+        // u8g2.sendBuffer();
+        // delay(2000);
     }
 }
 

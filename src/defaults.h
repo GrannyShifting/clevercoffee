@@ -20,9 +20,9 @@ int writeSysParamsToStorage(void);
 #define STR(x)        STR_HELPER(x)
 
 // default parameters
-#define SETPOINT                  95     // brew temperature setpoint
+#define SETPOINT                  105     // brew temperature setpoint
 #define TEMPOFFSET                0      // brew temperature setpoint
-#define STEAMSETPOINT             120    // steam temperature setpoint
+#define STEAMSETPOINT             135    // steam temperature setpoint
 #define SCALE_CALIBRATION_FACTOR  1.00   // Raw data is divided by this value to convert to readable data
 #define SCALE2_CALIBRATION_FACTOR 1.00   // Raw data is divided by this value to convert to readable data
 #define SCALE_KNOWN_WEIGHT        267.00 // Calibration weight for scale (weight of the tray)
@@ -36,19 +36,19 @@ int writeSysParamsToStorage(void);
 #define AGGBKP                    50     // PID Kp (brew detection phase)
 #define AGGBTN                    0      // PID Tn (brew detection phase)
 #define AGGBTV                    20     // PID Tv (brew detection phase)
-#define BREW_TIME                 25     // brew time in seconds (only used if pump is being controlled)
+#define BREW_TIME                 0      // brew time in seconds (only used if pump is being controlled)
 #define BREW_SW_TIME              25     // keep brew PID params for this many seconds after detection (only for software BD)
-#define BREW_PID_DELAY            10     // delay until enabling PID controller during brew (no heating during this time)
+#define BREW_PID_DELAY            0      // delay until enabling PID controller during brew (no heating during this time)
 #define BD_SENSITIVITY            120    // brew detection sensitivity, be careful: if too low, then there is the risk of wrong brew detection and rising temperature
-#define PRE_INFUSION_TIME         2      // pre-infusion time in seconds
-#define PRE_INFUSION_PAUSE_TIME   5      // pre-infusion pause time in seconds
-#define SCALE_WEIGHTSETPOINT      30     // Target weight in grams
+#define PRE_INFUSION_TIME         0      // pre-infusion time in seconds
+#define PRE_INFUSION_PAUSE_TIME   0      // pre-infusion pause time in seconds
+#define SCALE_WEIGHTSETPOINT      35     // Target weight in grams
 #define WIFI_CREDENTIALS_SAVED    0      // Flag if wifi setup is done. 0: not set up, 1: credentials set up via wifi manager
 #define STANDBY_MODE_ON           1      // Standby mode on by default
 #define STANDBY_MODE_TIME         30     // Time in minutes until the heater is turned off
-#define BACKFLUSH_CYCLES          5      // number of cycles the backflush should run
-#define BACKFLUSH_FILL_TIME       5      // time in seconds the pump is running during backflush
-#define BACKFLUSH_FLUSH_TIME      10     // time in seconds the 3-way valve is open during backflush
+#define BACKFLUSH_CYCLES          10      // number of cycles the backflush should run
+#define BACKFLUSH_FILL_TIME       24      // time in seconds the pump is running during backflush
+#define BACKFLUSH_FLUSH_TIME      300     // time in seconds the 3-way valve is open during backflush
 
 #define PID_KP_START_MIN         0
 #define PID_KP_START_MAX         999
@@ -69,7 +69,7 @@ int writeSysParamsToStorage(void);
 #define PID_TV_BD_MIN            0
 #define PID_TV_BD_MAX            999
 #define BREW_SETPOINT_MIN        20
-#define BREW_SETPOINT_MAX        110
+#define BREW_SETPOINT_MAX        115
 #define STEAM_SETPOINT_MIN       100
 #define STEAM_SETPOINT_MAX       140
 #define BREW_TEMP_OFFSET_MIN     0
@@ -97,6 +97,6 @@ int writeSysParamsToStorage(void);
 #define BACKFLUSH_CYCLES_MIN     2
 #define BACKFLUSH_CYCLES_MAX     20
 #define BACKFLUSH_FILL_TIME_MIN  5
-#define BACKFLUSH_FILL_TIME_MAX  20
+#define BACKFLUSH_FILL_TIME_MAX  100
 #define BACKFLUSH_FLUSH_TIME_MIN 5
-#define BACKFLUSH_FLUSH_TIME_MAX 20
+#define BACKFLUSH_FLUSH_TIME_MAX 500

@@ -543,6 +543,7 @@ int sendHASSIODiscoveryMsg() {
     // Switch Devices
     DiscoveryObject pidOn = GenerateSwitchDevice("pidON", "Use PID");
     DiscoveryObject steamON = GenerateSwitchDevice("steamON", "Steam");
+    DiscoveryObject scheduler = GenerateSwitchDevice("scheduler", "Use Scheduler");
 #if FEATURE_BREWCONTROL == 1
     DiscoveryObject backflushOn = GenerateSwitchDevice("backflushOn", "Backflush");
 #endif
@@ -577,7 +578,8 @@ int sendHASSIODiscoveryMsg() {
 #endif
                                                      pidOn,
                                                      steamON,
-                                                     startUsePonM
+                                                     startUsePonM,
+                                                     scheduler
 
 #if FEATURE_PRESSURESENSOR == 1
                                                      ,

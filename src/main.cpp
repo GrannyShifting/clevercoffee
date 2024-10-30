@@ -37,6 +37,7 @@
 #include <AiEsp32RotaryEncoder.h> // Only works on 5V
 #include "hardware/GPIOPin.h"
 #include "hardware/IOSwitch.h"
+#include "hardware/SWSwitch.h"
 #include "hardware/LED.h"
 #include "hardware/Relay.h"
 #include "hardware/StandardLED.h"
@@ -171,8 +172,10 @@ Relay heaterRelay(heaterRelayPin, HEATER_SSR_TYPE);
 GPIOPin pumpRelayPin(PIN_PUMP, GPIOPin::OUT);
 Relay pumpRelay(pumpRelayPin, PUMP_VALVE_SSR_TYPE);
 
-GPIOPin valveRelayPin(PIN_VALVE, GPIOPin::OUT);
-Relay valveRelay(valveRelayPin, PUMP_VALVE_SSR_TYPE);
+#ifdef VALVE_CONTROL
+    GPIOPin valveRelayPin(PIN_VALVE, GPIOPin::OUT);
+    Relay valveRelay(valveRelayPin, PUMP_VALVE_SSR_TYPE);
+#endif
 
 Switch* powerSwitch;
 Switch* brewSwitch;
@@ -183,6 +186,7 @@ TempSensor* tempSensor;
 #include "isr.h"
 
 // Method forward declarations
+void setSchedulerStatus(int schedulerStatus);
 void setSteamMode(int steamMode);
 void setPidStatus(int pidStatus);
 void setBackflush(int backflush);
@@ -211,7 +215,6 @@ void resetOLEDStandbyTimer(void);
 void initWebVars(void);
 void initMQTT(void);
 void checkMillisOverflow(void);
-void printLocalTime(void);
 
 // system parameters
 uint8_t pidON = 0; // 1 = control loop in closed loop
@@ -234,6 +237,7 @@ double brewTime = BREW_TIME;                       // brewtime in s
 double preinfusion = PRE_INFUSION_TIME;            // preinfusion time in s
 double preinfusionPause = PRE_INFUSION_PAUSE_TIME; // preinfusion pause time in s
 double weightSetpoint = SCALE_WEIGHTSETPOINT;
+uint8_t scheduler = 0;
 
 // PID - values for offline brew detection
 uint8_t useBDPID = 0;
@@ -290,6 +294,7 @@ SysPara<float> sysParaScaleKnownWeight(&scaleKnownWeight, 0, 2000, STO_ITEM_SCAL
 SysPara<int> sysParaBackflushCycles(&backflushCycles, BACKFLUSH_CYCLES_MIN, BACKFLUSH_CYCLES_MAX, STO_ITEM_BACKFLUSH_CYCLES);
 SysPara<double> sysParaBackflushFillTime(&backflushFillTime, BACKFLUSH_FILL_TIME_MIN, BACKFLUSH_FILL_TIME_MAX, STO_ITEM_BACKFLUSH_FILL_TIME);
 SysPara<double> sysParaBackflushFlushTime(&backflushFlushTime, BACKFLUSH_FLUSH_TIME_MIN, BACKFLUSH_FLUSH_TIME_MAX, STO_ITEM_BACKFLUSH_FLUSH_TIME);
+SysPara<uint8_t> sysParaScheduler(&scheduler, 0, 1, STO_ITEM_SCHEDULER);
 
 // Other variables
 boolean emergencyStop = false;                // Emergency stop if temperature is too high
@@ -452,8 +457,9 @@ Timer printDisplayTimer(&printScreen, 100);
 // Proper fix is to refactor the millis() variables to subtract instead of compare directly.
 void checkMillisOverflow(){
     if (millis() > 4294900000){
-        pidON=0;
+        pidON = 0;
         sysParaPidOn.setStorage();
+        storageCommit();
         ESP.restart();
     }
 }
@@ -461,16 +467,6 @@ void checkMillisOverflow(){
 const char* ntpServer = "pool.ntp.org";
 const long  gmtOffset_sec = -28800;
 const int   daylightOffset_sec = 3600;
-
-void printLocalTime()
-{
-  struct tm timeinfo;
-  if(!getLocalTime(&timeinfo)){
-    Serial.println("Failed to obtain time");
-    return;
-  }
-  Serial.println(&timeinfo, "%A, %B %d %Y %h:%M:%S");
-}
 
 // Emergency stop if temp is too high
 void testEmergencyStop() {
@@ -801,6 +797,8 @@ void handleMachineState() {
             if (standbyModeOn && standbyModeRemainingTimeMillis == 0) {
                 machineState = kStandby;
                 pidON = 0;
+                sysParaPidOn.setStorage();
+                storageCommit();
             }
 
             if (pidON == 0 && machineState != kStandby) {
@@ -1201,7 +1199,9 @@ void setup() {
     }
 
     heaterRelay.off();
+#ifdef VALVE_CONTROL
     valveRelay.off();
+#endif
     pumpRelay.off();
 
     if (FEATURE_POWERSWITCH) {
@@ -1222,7 +1222,11 @@ void setup() {
         }
     }
     else if (FEATURE_BREWSWITCH) {
-        brewSwitch = new IOSwitch(PIN_BREWSWITCH, GPIOPin::IN_HARDWARE, BREWSWITCH_TYPE, BREWSWITCH_MODE);
+
+        if(BREWSWITCH_TYPE == Switch::SW_TRIG)
+            brewSwitch = new SWSwitch(LOW);
+        else
+            brewSwitch = new IOSwitch(PIN_BREWSWITCH, GPIOPin::IN_HARDWARE, BREWSWITCH_TYPE, BREWSWITCH_MODE);
     }
 
     if (FEATURE_STATUS_LED){
@@ -1246,7 +1250,7 @@ void setup() {
     }
 
         if (FEATURE_WATER_SENS == 1) {
-        waterSensor = new IOSwitch(PIN_WATERSENSOR, (WATER_SENS_TYPE == Switch::NORMALLY_OPEN ? GPIOPin::IN_PULLDOWN : GPIOPin::IN_PULLUP), Switch::TOGGLE, WATER_SENS_TYPE);
+            waterSensor = new IOSwitch(PIN_WATERSENSOR, (WATER_SENS_TYPE == Switch::NORMALLY_OPEN ? GPIOPin::IN_PULLDOWN : GPIOPin::IN_PULLUP), Switch::TOGGLE, WATER_SENS_TYPE);
     }
 
 #if OLED_DISPLAY != 0
@@ -1286,7 +1290,7 @@ void setup() {
         wm.disconnect();            // no wm
         readSysParamsFromStorage(); // get all parameters from storage
         offlineMode = 1;            // offline mode
-        pidON = 1;                  // pid on
+        // pidON = 1;                  // pid on
     }
 
     // Start the logger
@@ -1365,8 +1369,6 @@ void loop() {
 
     loopRotEnc();
 
-    printLocalTime();
-
     // pumpRelay.on();
     // delay(1000);
     // pumpRelay.off();
@@ -1422,6 +1424,22 @@ void looppid() {
     if (machineState != kSteam) {
         temperature -= brewTempOffset;
     }
+
+    if (scheduler && !pidON) {
+
+        struct tm timeinfo;
+        if(!getLocalTime(&timeinfo)){
+            Serial.println("Failed to obtain time");
+        }
+        else{
+            // Monday - Friday
+            if ( (1<=timeinfo.tm_wday<= 5) && timeinfo.tm_hour == TURN_ON_HOUR && timeinfo.tm_min == TURN_ON_MIN) {
+                pidON = 1;
+                LOGF(INFO, "Turning on PID per scheduled time");
+            }
+        }
+    }
+
     checkMillisOverflow();
     testEmergencyStop(); // test if temp is too high
     bPID.Compute();      // the variable pidOutput now has new values from PID (will be written to heater pin in ISR.cpp)
@@ -1495,7 +1513,8 @@ void looppid() {
     printDisplayTimer();
 #endif
 
-    if (machineState == kPidDisabled || machineState == kWaterEmpty || machineState == kSensorError || machineState == kEmergencyStop || machineState == kEepromError || machineState == kStandby || brewPIDDisabled) {
+    if (machineState == kPidDisabled || machineState == kWaterEmpty || machineState == kSensorError || 
+        machineState == kEmergencyStop || machineState == kEepromError || machineState == kStandby || brewPIDDisabled) {
         if (bPID.GetMode() == 1) {
             // Force PID shutdown
             bPID.SetMode(0);
@@ -1598,15 +1617,16 @@ void loopRotEnc () {
     }
 
     if (rotaryEncoder.isEncoderButtonClicked()) {
-        if (machineState == kStandby && standbyModeRemainingTimeDisplayOffMillis == 0){
+        if (standbyModeRemainingTimeDisplayOffMillis == 0){
             resetOLEDStandbyTimer();
             u8g2.setPowerSave(0);
             return;
         }
 
-        // if () {
-            
-        // }
+        if (brewSwitch->isPressed())
+            brewSwitch->setState(LOW);
+        else
+            brewSwitch->setState(HIGH);
 
     }
 }
@@ -1642,6 +1662,13 @@ void setScaleTare(int tare) {
 }
 #endif
 
+
+void setSchedulerStatus(int schedulerStatus){
+    scheduler = schedulerStatus;
+    sysParaScheduler.setStorage();
+    storageCommit();
+}
+
 void setSteamMode(int steamMode) {
     steamON = steamMode;
 
@@ -1656,7 +1683,11 @@ void setSteamMode(int steamMode) {
 
 void setPidStatus(int pidStatus) {
     pidON = pidStatus;
-    writeSysParamsToStorage();
+
+    if (!pidStatus){
+        sysParaPidOn.setStorage();
+        storageCommit();
+    }
 }
 
 void setNormalPIDTunings() {
@@ -1738,6 +1769,7 @@ int readSysParamsFromStorage(void) {
     if (sysParaBackflushCycles.getStorage() != 0) return -1;
     if (sysParaBackflushFillTime.getStorage() != 0) return -1;
     if (sysParaBackflushFlushTime.getStorage() != 0) return -1;
+    if (sysParaScheduler.getStorage() != 0) return -1;
 
     return 0;
 }
@@ -1780,6 +1812,7 @@ int writeSysParamsToStorage(void) {
     if (sysParaBackflushCycles.setStorage() != 0) return -1;
     if (sysParaBackflushFillTime.setStorage() != 0) return -1;
     if (sysParaBackflushFlushTime.setStorage() != 0) return -1;
+    if (sysParaScheduler.setStorage() != 0) return -1;
 
     return storageCommit();
 }
@@ -2213,6 +2246,17 @@ void initWebVars(void){
     editableVars["VERSION"] = {
         .displayName = F("Version"), .hasHelpText = false, .helpText = "", .type = kCString, .section = sOtherSection, .position = 33, .show = [] { return false; }, .minValue = 0, .maxValue = 1, .ptr = (void*)sysVersion};
     // when adding parameters, set EDITABLE_VARS_LEN to max of .position
+
+    editableVars["SCHEDULER_ON"] = {.displayName = F("Enable Scheduler"),
+                                    .hasHelpText = true,
+                                    .helpText = F("Enable scheduler to turn on/off PID heater."),
+                                    .type = kUInt8,
+                                    .section = sPowerSection,
+                                    .position = 37,
+                                    .show = [] { return true; },
+                                    .minValue = 0,
+                                    .maxValue = 1,
+                                    .ptr = (void*)&scheduler};
 }
 
 
@@ -2237,6 +2281,7 @@ void initMQTT(void){
     mqttVars["aggIMax"] = [] { return &editableVars.at("PID_I_MAX"); };
     mqttVars["steamKp"] = [] { return &editableVars.at("STEAM_KP"); };
     mqttVars["standbyModeOn"] = [] { return &editableVars.at("STANDBY_MODE_ON"); };
+    mqttVars["scheduler"] = [] { return &editableVars.at("SCHEDULER_ON"); };
 
     if (FEATURE_BREWCONTROL == 1) {
         mqttVars["brewtime"] = [] { return &editableVars.at("BREW_TIME"); };

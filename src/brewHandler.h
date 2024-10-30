@@ -79,7 +79,7 @@ HX711_ADC LoadCell2(PIN_HXDAT2, PIN_HXCLK);
 void checkbrewswitch() {
     uint8_t brewSwitchReading = brewSwitch->isPressed();
 
-    if (BREWSWITCH_TYPE == Switch::TOGGLE) {
+    if (BREWSWITCH_TYPE == Switch::TOGGLE || BREWSWITCH_TYPE == Switch::SW_TRIG) {
         currStateBrewSwitch = brewSwitchReading;
     }
     else if (BREWSWITCH_TYPE == Switch::MOMENTARY) {
@@ -108,7 +108,9 @@ void checkbrewswitch() {
                 // Brew switch more than brewSwitchMomentaryLongPress pressed - start flushing
                 if (currBrewSwitchStateMomentary == HIGH && brewSwitch->longPressDetected() && machineState != kWaterEmpty) {
                     brewSwitchState = kBrewSwitchFlushOff;
+#ifdef VALVE_CONTROL
                     valveRelay.on();
+#endif
                     pumpRelay.on();
                     startingTime = millis();
                     LOG(DEBUG, "brewSwitchState = kBrewSwitchBrew: brew switch long pressed - start flushing");
@@ -129,7 +131,9 @@ void checkbrewswitch() {
                 if (currBrewSwitchStateMomentary == LOW && currStateBrewSwitch == LOW) {
                     brewSwitchState = kBrewSwitchReset;
                     LOG(DEBUG, "brewswitchTriggerCase = kBrewSwitchFlushOff: brew switch long press released - stop flushing");
+#ifdef VALVE_CONTROL
                     valveRelay.off();
+#endif
                     pumpRelay.off();
                 }
                 break;
@@ -182,7 +186,9 @@ void backflush() {
 
         case kBackflushFillingStart:
             LOG(INFO, "Backflush: Portafilter filling...");
+#ifdef VALVE_CONTROL
             valveRelay.on();
+#endif
             pumpRelay.on();
             backflushState = kBackflushFilling;
 
@@ -198,7 +204,9 @@ void backflush() {
 
         case kBackflushFlushingStart:
             LOG(INFO, "Backflush: Flushing to drip tray...");
+#ifdef VALVE_CONTROL
             valveRelay.off();
+#endif
             pumpRelay.off();
             currBackflushCycles++;
             backflushState = kBackflushFlushing;
@@ -217,9 +225,13 @@ void backflush() {
             break;
 
         case kBackflushWaitBrewswitchOff:
-            if (currStateBrewSwitch == LOW) {
+            if (currStateBrewSwitch == LOW || BREWSWITCH_TYPE == Switch::SW_TRIG) {
+                if (BREWSWITCH_TYPE == Switch::SW_TRIG)
+                    brewSwitch->setState(LOW);
                 LOG(INFO, "Backflush: Finished!");
+#ifdef VALVE_CONTROL
                 valveRelay.off();
+#endif
                 pumpRelay.off();
                 currBackflushCycles = 0;
                 backflushState = kBackflushWaitBrewswitchOn;
@@ -266,6 +278,10 @@ void brew() {
             if (currStateBrewSwitch == HIGH && backflushState == 10 && backflushOn == 0 && brewSwitchWasOff && machineState != kWaterEmpty) {
                 startingTime = millis();
 
+                // Tare scale before beginning the brew
+                LoadCell.tare();
+                LoadCell.setCalFactor(scaleCalibration);
+
                 if (preinfusionPause == 0 || preinfusion == 0) {
                     currBrewState = kBrewRunning;
                 }
@@ -281,7 +297,9 @@ void brew() {
 
         case kPreinfusion: // preinfusioon
             LOG(INFO, "Preinfusion");
+#ifdef VALVE_CONTROL
             valveRelay.on();
+#endif
             pumpRelay.on();
             currBrewState = kWaitPreinfusion;
 
@@ -296,7 +314,9 @@ void brew() {
 
         case kPreinfusionPause: // preinfusion pause
             LOG(INFO, "Preinfusion pause");
+#ifdef VALVE_CONTROL
             valveRelay.on();
+#endif
             pumpRelay.off();
             currBrewState = kWaitPreinfusionPause;
 
@@ -311,7 +331,9 @@ void brew() {
 
         case kBrewRunning: // brew running
             LOG(INFO, "Brew started");
+#ifdef VALVE_CONTROL
             valveRelay.on();
+#endif
             pumpRelay.on();
             currBrewState = kWaitBrew;
 
@@ -335,15 +357,21 @@ void brew() {
 
         case kBrewFinished: // brew finished
             LOG(INFO, "Brew stopped");
+#ifdef VALVE_CONTROL
             valveRelay.off();
+#endif
             pumpRelay.off();
             currBrewState = kWaitBrewOff;
 
             break;
 
         case kWaitBrewOff: // waiting for brewswitch off position
-            if (currStateBrewSwitch == LOW) {
+            if ( currStateBrewSwitch == LOW || BREWSWITCH_TYPE == Switch::SW_TRIG) {
+                if (BREWSWITCH_TYPE == Switch::SW_TRIG)
+                    brewSwitch->setState(LOW);
+#ifdef VALVE_CONTROL
                 valveRelay.off();
+#endif
                 pumpRelay.off();
 
                 // disarmed button

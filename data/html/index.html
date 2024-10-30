@@ -117,6 +117,16 @@
                                                 </form>
                                             </td>
                                         </template>
+                                        <template v-if="param.name == 'SCHEDULER_ON'">
+                                            <td><b>Toggle Scheduler</b></td>
+                                            <td><span id="scheduler_state"></span></td>
+                                            <td>
+                                                <form action="/toggleScheduler" method="post">
+                                                    <input type="hidden" id="varSCHEDULER_ON" name="varSCHEDULER_ON" />
+                                                    <input type="submit" class="btn btn-primary" :value="param.value == 1 ? 'Off' : 'On'" id="scheduler_toggle" />
+                                                </form>
+                                            </td>
+                                        </template>
                                     </tr>
                                 </template>
                             </tbody>

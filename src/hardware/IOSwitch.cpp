@@ -58,3 +58,8 @@ bool IOSwitch::longPressDetected() {
 
     return false;
 }
+
+
+void IOSwitch::setState(uint8_t state){
+    return;
+}

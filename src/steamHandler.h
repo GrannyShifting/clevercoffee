@@ -16,7 +16,8 @@ void checkSteamSwitch() {
                 steamON = 1;
             }
 
-            // if activated via web interface then steamFirstON == 1, prevent override
+            // if activated via web interface then steamFirstON == 1, prevent override.
+            // web interface takes priority
             if (steamSwitchReading == LOW && !steamFirstON) {
                 steamON = 0;
             }
