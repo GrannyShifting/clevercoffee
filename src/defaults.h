@@ -38,6 +38,7 @@ int writeSysParamsToStorage(void);
 #define AGGBTV                    20     // PID Tv (brew detection phase)
 #define BREW_TIME                 0      // brew time in seconds (only used if pump is being controlled)
 #define BREW_SW_TIME              25     // keep brew PID params for this many seconds after detection (only for software BD)
+#define BREW_SCREEN_DELAY         5      // Keep the shot time screen on for this many seconds after the brew has completed
 #define BREW_PID_DELAY            0      // delay until enabling PID controller during brew (no heating during this time)
 #define BD_SENSITIVITY            120    // brew detection sensitivity, be careful: if too low, then there is the risk of wrong brew detection and rising temperature
 #define PRE_INFUSION_TIME         0      // pre-infusion time in seconds
@@ -48,7 +49,7 @@ int writeSysParamsToStorage(void);
 #define STANDBY_MODE_TIME         30     // Time in minutes until the heater is turned off
 #define BACKFLUSH_CYCLES          10      // number of cycles the backflush should run
 #define BACKFLUSH_FILL_TIME       24      // time in seconds the pump is running during backflush
-#define BACKFLUSH_FLUSH_TIME      300     // time in seconds the 3-way valve is open during backflush
+#define BACKFLUSH_FLUSH_TIME      150     // time in seconds the 3-way valve is open during backflush
 
 #define PID_KP_START_MIN         0
 #define PID_KP_START_MAX         999

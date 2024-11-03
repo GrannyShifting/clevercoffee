@@ -275,7 +275,7 @@ void brew() {
     // state machine for brew
     switch (currBrewState) {
         case kBrewIdle: // waiting step for brew switch turning on
-            if (currStateBrewSwitch == HIGH && backflushState == 10 && backflushOn == 0 && brewSwitchWasOff && machineState != kWaterEmpty) {
+            if (currStateBrewSwitch == HIGH && backflushState == kBackflushWaitBrewswitchOn && backflushOn == 0 && brewSwitchWasOff && machineState != kWaterEmpty) {
                 startingTime = millis();
 
                 // Tare scale before beginning the brew
@@ -362,6 +362,7 @@ void brew() {
 #endif
             pumpRelay.off();
             currBrewState = kWaitBrewOff;
+            startingTime = millis();
 
             break;
 
@@ -369,17 +370,23 @@ void brew() {
             if ( currStateBrewSwitch == LOW || BREWSWITCH_TYPE == Switch::SW_TRIG) {
                 if (BREWSWITCH_TYPE == Switch::SW_TRIG)
                     brewSwitch->setState(LOW);
+                inMenu = 0;
 #ifdef VALVE_CONTROL
                 valveRelay.off();
 #endif
                 pumpRelay.off();
 
                 // disarmed button
-                currentMillisTemp = 0;
-                brewDetected = 0;          // rearm brewDetection
-                currBrewState = kBrewIdle;
-                lastBrewTime = timeBrewed; // store brewtime to show in Shottimer after brew is finished
-                timeBrewed = 0;
+                if (millis() - startingTime > BREW_SCREEN_DELAY * 1000){
+                    currentMillisTemp = 0;
+                    brewDetected = 0;          // rearm brewDetection
+                    currBrewState = kBrewIdle;
+                    lastBrewTime = timeBrewed; // store brewtime to show in Shottimer after brew is finished
+                    timeBrewed = 0;
+                    isBrewDetected = 0;
+                    pidON = 0;
+                    clrMachineStandbyTimer();
+                }
             }
 
             break;

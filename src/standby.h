@@ -9,7 +9,8 @@
 #define TIME_TO_DISPLAY_OFF 1
 
 unsigned long standbyModeStartTimeMillis = millis();
-unsigned long standbyModeRemainingTimeMillis = standbyModeTime * 60 * 1000;
+// unsigned long standbyModeRemainingTimeMillis = standbyModeTime * 60 * 1000;
+unsigned long standbyModeRemainingTimeMillis = 0;
 unsigned long standbyModeRemainingTimeDisplayOffMillis = TIME_TO_DISPLAY_OFF * 60 * 1000;
 unsigned long lastStandbyTimeMillis = standbyModeStartTimeMillis;
 unsigned long timeSinceStandbyMillis = 0;
@@ -34,7 +35,6 @@ void updateStandbyTimer(void) {
         }
         else {
             standbyModeRemainingTimeMillis = 0;
-            resetOLEDStandbyTimer();
             LOG(INFO, "Entering standby mode...");
         }
     }
@@ -64,7 +64,15 @@ void resetMachineStandbyTimer(void) {
     LOGF(INFO, "Resetting standby timer to %i minutes", (int)standbyModeTime);
 }
 
+void clrMachineStandbyTimer(void) {
+    standbyModeRemainingTimeMillis = 0;
+
+    LOGF(INFO, "Clearing standby timer");
+}
+
 void resetOLEDStandbyTimer(void) {
     standbyModeRemainingTimeDisplayOffMillis = TIME_TO_DISPLAY_OFF * 60 * 1000;
     standbyModeStartTimeMillis = millis();
+
+    LOGF(INFO, "Resetting display timer to %i minute(s)", (int)TIME_TO_DISPLAY_OFF);
 }

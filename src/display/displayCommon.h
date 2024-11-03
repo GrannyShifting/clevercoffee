@@ -4,6 +4,32 @@
  * @brief Common functions for all display templates
  */
 
+#define OLED_WIDTH 127
+#define OLED_HEIGHT 63
+#define SCROLL_WIDTH 5
+#define SCROLL_HEIGHT 20
+#define NUM_MENU_ITEMS 6
+
+enum menuList {
+    MENU_EXIT,
+    MENU_BREW,
+    MENU_WEIGHT,
+    MENU_TEMP,
+    MENU_PID,
+    MENU_STEAM
+};
+
+menuList menuState = MENU_EXIT;
+
+String menu[] = {   
+    "Exit",
+    "Brew",
+    "Yield",
+    "Temp",
+    "PID",
+    "Steam"
+};
+
 #pragma once
 
 #if (OLED_DISPLAY != 0)
@@ -441,3 +467,56 @@ bool displayMachineState() {
     return false;
 }
 #endif
+
+void displayScrollbar(){
+    u8g2.drawVLine(OLED_WIDTH-SCROLL_WIDTH/2-1,0,OLED_HEIGHT);
+    u8g2.drawBox(OLED_WIDTH-SCROLL_WIDTH,(OLED_HEIGHT-SCROLL_HEIGHT)*(currMenuItem)/(NUM_MENU_ITEMS-1),
+                SCROLL_WIDTH,SCROLL_HEIGHT);
+}
+
+void displayMenu() {
+    u8g2.clearBuffer();
+    u8g2.setFont(u8g2_font_profont17_mr);
+    displayScrollbar();
+    u8g2.setCursor(0, 3+20*(currMenuItem%3));
+    if (inMenu == 1)
+        u8g2.print('>');
+    else
+    if (inMenu == 2)
+        u8g2.print('*');
+    u8g2.setCursor(10, 3);
+    u8g2.print(menu[(currMenuItem/3)*3]);
+    u8g2.setCursor(10, 23);
+    u8g2.print(menu[(currMenuItem/3)*3+1]);
+    u8g2.setCursor(10, 43);
+    u8g2.print(menu[(currMenuItem/3)*3+2]);
+
+    char buff[10];
+
+    if (currMenuItem < 3){
+        u8g2.setCursor(66, 43);
+        sprintf(buff, "%02.1f",weightSetpoint);
+        u8g2.print(buff);
+        u8g2.print('g');
+    }
+    else {
+        u8g2.setCursor(66, 3);
+        sprintf(buff, "%.1f",brewSetpoint);
+        u8g2.print(buff);
+        u8g2.print('C');
+        
+        u8g2.setCursor(66, 23);
+        sprintf(buff, "%u",pidON);
+        u8g2.print(buff);
+        
+        u8g2.setCursor(66, 43);
+        sprintf(buff, "%.1f",steamSetpoint);
+        u8g2.print(buff);
+        u8g2.print('C');
+        
+    }
+
+    u8g2.sendBuffer();
+}
+
+

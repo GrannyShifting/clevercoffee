@@ -79,6 +79,9 @@ hw_timer_t* timer = NULL;
 
 // // Rotary Encoder
 AiEsp32RotaryEncoder rotaryEncoder = AiEsp32RotaryEncoder(PIN_ROTARY_DT, PIN_ROTARY_CLK, PIN_ROTARY_SW, PIN_ENCODER_VCC, ROTARY_ENCODER_STEPS);
+uint8_t inMenu = 0;
+uint8_t menuLevel = 0;
+uint8_t currMenuItem = 0;
 
 MACHINE machine = (enum MACHINE)MACHINEID;
 
@@ -211,6 +214,7 @@ float filterPressureValue(float input);
 int writeSysParamsToMQTT(bool continueOnError);
 void updateStandbyTimer(void);
 void resetMachineStandbyTimer(void);
+void clrMachineStandbyTimer(void);
 void resetOLEDStandbyTimer(void);
 void initWebVars(void);
 void initMQTT(void);
@@ -458,8 +462,8 @@ Timer printDisplayTimer(&printScreen, 100);
 void checkMillisOverflow(){
     if (millis() > 4294900000){
         pidON = 0;
-        sysParaPidOn.setStorage();
-        storageCommit();
+        // sysParaPidOn.setStorage();
+        // storageCommit();
         ESP.restart();
     }
 }
@@ -596,9 +600,9 @@ void brewDetection() {
         }
     }
     else if (brewDetectionMode == 2) {
-        if (millis() - timeBrewDetection > brewtimesoftware * 1000 && isBrewDetected == 1) {
-            isBrewDetected = 0; // rearm brewDetection
-        }
+        // if (millis() - timeBrewDetection > brewtimesoftware * 1000 && isBrewDetected == 1) {
+        //     isBrewDetected = 0; // rearm brewDetection
+        // }
     }
     else if (brewDetectionMode == 3) {
         // timeBrewed counter
@@ -759,7 +763,7 @@ void handleMachineState() {
             }
 
             break;
-
+  
         case kPidNormal:
             brewDetection();
 
@@ -767,8 +771,8 @@ void handleMachineState() {
                 machineState = kBrew;
 
                 if (standbyModeOn) {
-                    resetMachineStandbyTimer();
-                    resetOLEDStandbyTimer();
+                    // resetMachineStandbyTimer();
+                    // resetOLEDStandbyTimer();
                 }
             }
 
@@ -776,17 +780,16 @@ void handleMachineState() {
                 machineState = kSteam;
 
                 if (standbyModeOn) {
-                    resetMachineStandbyTimer();
-                    resetOLEDStandbyTimer();
+                    // resetMachineStandbyTimer();
+                    // resetOLEDStandbyTimer();
                 }
             }
 
             if (backflushOn || backflushState > kBackflushWaitBrewswitchOn) {
                 machineState = kBackflush;
-
+                
                 if (standbyModeOn) {
                     resetMachineStandbyTimer();
-                    resetOLEDStandbyTimer();
                 }
             }
 
@@ -795,10 +798,11 @@ void handleMachineState() {
             }
 
             if (standbyModeOn && standbyModeRemainingTimeMillis == 0) {
-                machineState = kStandby;
+                machineState = kPidDisabled;
                 pidON = 0;
-                sysParaPidOn.setStorage();
-                storageCommit();
+                clrMachineStandbyTimer();
+                // sysParaPidOn.setStorage();
+                // storageCommit();
             }
 
             if (pidON == 0 && machineState != kStandby) {
@@ -866,6 +870,9 @@ void handleMachineState() {
 
             if (backflushOn || backflushState > kBackflushWaitBrewswitchOn) {
                 machineState = kBackflush;
+                if (standbyModeOn) {
+                    resetMachineStandbyTimer();
+                }
             }
 
             if (emergencyStop) {
@@ -903,6 +910,9 @@ void handleMachineState() {
 
             if (backflushOn || backflushState > kBackflushWaitBrewswitchOn) {
                 machineState = kBackflush;
+                if (standbyModeOn) {
+                    resetMachineStandbyTimer();
+                }
             }
 
             if (emergencyStop) {
@@ -933,6 +943,9 @@ void handleMachineState() {
 
             if (backflushOn || backflushState > kBackflushWaitBrewswitchOn) {
                 machineState = kBackflush;
+                if (standbyModeOn) {
+                    resetMachineStandbyTimer();
+                }
             }
 
             if (pidON == 0) {
@@ -950,7 +963,9 @@ void handleMachineState() {
 
         case kBackflush:
             if (backflushOn == 0) {
-                machineState = kPidNormal;
+                pidON = 0;
+                clrMachineStandbyTimer();
+                machineState = kPidDisabled;
             }
 
             if (emergencyStop) {
@@ -999,9 +1014,27 @@ void handleMachineState() {
             break;
 
         case kPidDisabled:
-            if (pidON == 1) {
-                // Enter regular PID operations
-                machineState = kPidNormal;
+            if (standbyModeRemainingTimeDisplayOffMillis == 0) {
+#if OLED_DISPLAY != 0
+                u8g2.setPowerSave(1);
+#endif
+            }
+
+            brewDetection();
+
+            if (pidON || steamON || isBrewDetected) {
+                pidON = 1;
+                resetMachineStandbyTimer();
+
+                if (steamON) {
+                    machineState = kSteam;
+                }
+                else if (isBrewDetected) {
+                    machineState = kBrew;
+                }
+                else {
+                    machineState = kPidNormal;
+                }
             }
 
             if (!waterFull) {
@@ -1026,10 +1059,6 @@ void handleMachineState() {
             if (pidON || steamON || isBrewDetected) {
                 pidON = 1;
                 resetMachineStandbyTimer();
-                resetOLEDStandbyTimer();
-#if OLED_DISPLAY != 0
-                u8g2.setPowerSave(0);
-#endif
 
                 if (steamON) {
                     machineState = kSteam;
@@ -1163,7 +1192,8 @@ void wiFiSetup() {
 void websiteSetup() {
     setEepromWriteFcn(writeSysParamsToStorage);
 
-    readSysParamsFromStorage();
+    if(!readSysParamsFromStorage())
+        Serial.println("FAILED TO LOAD A PARAMETER FROM STORAGE");
 
     serverSetup();
 }
@@ -1346,6 +1376,8 @@ void setup() {
     rotaryEncoder.setBoundaries(-10000, 10000, true); 
     rotaryEncoder.disableAcceleration();
 
+    resetOLEDStandbyTimer();
+
     setupDone = true;
 
     enableTimer1();
@@ -1426,8 +1458,8 @@ void looppid() {
     }
 
     if (scheduler && !pidON) {
-
         struct tm timeinfo;
+        // blocking call for 5 seconds
         if(!getLocalTime(&timeinfo)){
             Serial.println("Failed to obtain time");
         }
@@ -1435,6 +1467,7 @@ void looppid() {
             // Monday - Friday
             if ( (1<=timeinfo.tm_wday<= 5) && timeinfo.tm_hour == TURN_ON_HOUR && timeinfo.tm_min == TURN_ON_MIN) {
                 pidON = 1;
+                resetMachineStandbyTimer();
                 LOGF(INFO, "Turning on PID per scheduled time");
             }
         }
@@ -1610,24 +1643,140 @@ void loopLED() {
 }
 
 void loopRotEnc () {
-    long encoderVal = rotaryEncoder.encoderChanged();
-
-    if (encoderVal != 0) {
-        displayMessage("", "", "", String(encoderVal), "", "");
-    }
-
+    
     if (rotaryEncoder.isEncoderButtonClicked()) {
-        if (standbyModeRemainingTimeDisplayOffMillis == 0){
-            resetOLEDStandbyTimer();
+        
+        
+        if (standbyModeRemainingTimeDisplayOffMillis == 0) {
             u8g2.setPowerSave(0);
+            resetOLEDStandbyTimer();
+            return;
+        }
+        resetOLEDStandbyTimer();
+        
+        if((inMenu == 0) && (currBrewState == kBrewIdle)){
+            inMenu = 1;
             return;
         }
 
-        if (brewSwitch->isPressed())
-            brewSwitch->setState(LOW);
-        else
-            brewSwitch->setState(HIGH);
+        if (inMenu == 1){
+            switch(currMenuItem) {
+                case (MENU_EXIT):
+                    inMenu = 0;
+                    break;
+                case (MENU_BREW):
+                    u8g2.clearBuffer();
+                    u8g2.setFont(u8g2_font_profont17_tf);
+                    u8g2.drawStr(0, 23, "Taring");
+                    u8g2.sendBuffer();
+                    brewSwitch->setState(HIGH);
+                    inMenu = 2;
+                    break;
+                case (MENU_WEIGHT):
+                case (MENU_TEMP):
+                case (MENU_PID):
+                case (MENU_STEAM):
+                    inMenu = 2;
+                    break;
+            }
+            return;
+        }
 
+        if (inMenu == 2){
+            switch(currMenuItem) {
+                case (MENU_BREW):
+                    if (BREWSWITCH_TYPE == Switch::SW_TRIG)
+                        brewSwitch->setState(LOW);
+                    inMenu = 0;
+                    break;
+                case (MENU_PID):
+                    inMenu = 1;
+                    break;
+                case (MENU_WEIGHT):
+                    sysParaWeightSetpoint.setStorage();
+                    inMenu = 1;
+                    storageCommit();
+                    break;
+                case (MENU_STEAM):
+                    sysParaSteamSetpoint.setStorage();
+                    inMenu = 1;
+                    storageCommit();
+                    break;
+                case (MENU_TEMP):
+                    sysParaBrewSetpoint.setStorage();
+                    inMenu = 1;
+                    storageCommit();
+                    break;
+            }
+            return;
+        }
+    }
+
+    // Difference between last value is returned. -1 for CCW, 1 for CW, 0 for no change
+    long encoderVal = rotaryEncoder.encoderChanged();
+
+    if (encoderVal != 0) {
+        if (standbyModeRemainingTimeDisplayOffMillis == 0) {
+            u8g2.setPowerSave(0);
+            resetOLEDStandbyTimer();
+            return;
+        }
+        resetOLEDStandbyTimer();
+    }
+
+    if (encoderVal > 0) {
+        if ((inMenu == 1) && (currMenuItem < sizeof(menu)/sizeof(menu[0])-1)){
+            currMenuItem++;
+            return;
+        }
+        if (inMenu == 2) {
+            switch(currMenuItem) {
+                case (MENU_WEIGHT):
+                    if (weightSetpoint + 1.0 <= WEIGHTSETPOINT_MAX)
+                        weightSetpoint += 1.0;
+                    break;
+                case (MENU_TEMP):
+                    if (brewSetpoint + 1.0 <= BREW_SETPOINT_MAX)
+                        brewSetpoint += 1.0;
+                    break;
+                case (MENU_PID):
+                    pidON = 1;
+                    resetMachineStandbyTimer();
+                    break;
+                case (MENU_STEAM):
+                    if (steamSetpoint + 1.0 <= STEAM_SETPOINT_MAX)            
+                        steamSetpoint += 1.0;
+                    break;
+            }
+            return;
+        }
+    }
+
+    if (encoderVal < 0) {
+        if ((inMenu == 1) && (currMenuItem > 0)){
+            currMenuItem--;
+            return;
+        }
+        if (inMenu == 2) {
+            switch(currMenuItem) {
+                case (MENU_WEIGHT):
+                    if (weightSetpoint - 1.0 >= WEIGHTSETPOINT_MIN)
+                        weightSetpoint -= 1.0;
+                    break;
+                case (MENU_TEMP):
+                    if (brewSetpoint - 1.0 >= BREW_SETPOINT_MIN)
+                        brewSetpoint -= 1.0;
+                    break;
+                case (MENU_PID):
+                    pidON = 0;
+                    clrMachineStandbyTimer();
+                    break;
+                case (MENU_STEAM):
+                    if (steamSetpoint - 1.0 >= STEAM_SETPOINT_MIN)            
+                        steamSetpoint -= 1.0;
+                    break;
+            }
+        }
     }
 }
 
@@ -1684,10 +1833,15 @@ void setSteamMode(int steamMode) {
 void setPidStatus(int pidStatus) {
     pidON = pidStatus;
 
-    if (!pidStatus){
-        sysParaPidOn.setStorage();
-        storageCommit();
-    }
+    if (pidON == 0)
+        clrMachineStandbyTimer();
+    else
+        resetMachineStandbyTimer();
+
+    // if (pidStatus == 0){
+    //     sysParaPidOn.setStorage();
+    //     storageCommit();
+    // }
 }
 
 void setNormalPIDTunings() {

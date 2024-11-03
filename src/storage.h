@@ -169,7 +169,7 @@ static const sto_data_t itemDefaults PROGMEM = {
     BACKFLUSH_CYCLES,                                                                                                               // STO_ITEM_BACKFLUSH_CYCLES
     BACKFLUSH_FILL_TIME,                                                                                                            // STO_ITEM_BACKFLUSH_FILLTIME
     BACKFLUSH_FLUSH_TIME,                                                                                                           // STO_ITEM_BACKFLUSH_FLUSHTIME
-    0,
+    0,                                                                                                                              // STO_ITEM_SCHEDULER
 };
 
 /**

@@ -13,6 +13,11 @@
  */
 void printScreen() {
 
+    if (inMenu && !((inMenu == 2) && (currMenuItem == MENU_BREW))) {
+        displayMenu();
+        return;
+    }
+
     // Show shot timer:
     if (displayShottimer()) {
         // Display was updated, end here
