@@ -56,7 +56,7 @@
 #define PIN_ZC -1 // Dimmer circuit Zero Crossing
 
 /**
- * Bidirectional Pins
+ * OLED Pins
  */
 #define PIN_I2CSCL 22
 #define PIN_I2CSDA 21

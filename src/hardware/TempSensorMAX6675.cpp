@@ -19,7 +19,7 @@ bool TempSensorMAX6675::sample_temperature(double& temperature) const {
         LOG(WARNING, "Temperature below 0");
         return false;
     }
-    else if (temp > 300) {
+    else if (temp >150) {
         LOG(WARNING, "Temperature too high");
         return false;
     }
