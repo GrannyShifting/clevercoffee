@@ -242,6 +242,9 @@ double preinfusion = PRE_INFUSION_TIME;            // preinfusion time in s
 double preinfusionPause = PRE_INFUSION_PAUSE_TIME; // preinfusion pause time in s
 double weightSetpoint = SCALE_WEIGHTSETPOINT;
 uint8_t scheduler = 0;
+int scheduler_hour = SCHEDULER_HOUR;
+int scheduler_min = SCHEDULER_MIN;
+
 
 // PID - values for offline brew detection
 uint8_t useBDPID = 1;
@@ -299,6 +302,9 @@ SysPara<int> sysParaBackflushCycles(&backflushCycles, BACKFLUSH_CYCLES_MIN, BACK
 SysPara<double> sysParaBackflushFillTime(&backflushFillTime, BACKFLUSH_FILL_TIME_MIN, BACKFLUSH_FILL_TIME_MAX, STO_ITEM_BACKFLUSH_FILL_TIME);
 SysPara<double> sysParaBackflushFlushTime(&backflushFlushTime, BACKFLUSH_FLUSH_TIME_MIN, BACKFLUSH_FLUSH_TIME_MAX, STO_ITEM_BACKFLUSH_FLUSH_TIME);
 SysPara<uint8_t> sysParaScheduler(&scheduler, 0, 1, STO_ITEM_SCHEDULER);
+SysPara<int> sysParaSchedulerHour(&scheduler_hour, SCHEDULER_HOUR_MIN, SCHEDULER_HOUR_MAX, STO_ITEM_SCHEDULER_HOUR);
+SysPara<int> sysParaSchedulerMin(&scheduler_min, SCHEDULER_MIN_MIN, SCHEDULER_MIN_MAX, STO_ITEM_SCHEDULER_MIN);
+
 
 // Other variables
 boolean emergencyStop = false;                // Emergency stop if temperature is too high
@@ -1409,7 +1415,7 @@ void loop() {
 
     loopRotEnc();
 
-    printScale();
+    // printScale();
 
     // pumpRelay.on();
     // delay(1000);
@@ -1475,7 +1481,7 @@ void looppid() {
         }
         else{
             // Monday - Friday
-            if ( (1<=timeinfo.tm_wday<= 5) && timeinfo.tm_hour == TURN_ON_HOUR && timeinfo.tm_min == TURN_ON_MIN) {
+            if ( (1<=timeinfo.tm_wday<= 5) && timeinfo.tm_hour == scheduler_hour && timeinfo.tm_min == scheduler_min) {
                 pidON = 1;
                 resetMachineStandbyTimer();
                 LOGF(INFO, "Turning on PID per scheduled time");
@@ -1940,6 +1946,8 @@ int readSysParamsFromStorage(void) {
     if (sysParaBackflushFillTime.getStorage() != 0) return -1;
     if (sysParaBackflushFlushTime.getStorage() != 0) return -1;
     if (sysParaScheduler.getStorage() != 0) return -1;
+    if (sysParaSchedulerHour.getStorage() != 0) return -1;
+    if (sysParaSchedulerMin.getStorage() != 0) return -1;
 
     return 0;
 }
@@ -1983,6 +1991,8 @@ int writeSysParamsToStorage(void) {
     if (sysParaBackflushFillTime.setStorage() != 0) return -1;
     if (sysParaBackflushFlushTime.setStorage() != 0) return -1;
     if (sysParaScheduler.setStorage() != 0) return -1;
+    if (sysParaSchedulerHour.setStorage() != 0) return -1;
+    if (sysParaSchedulerMin.setStorage() != 0) return -1;
 
     return storageCommit();
 }
@@ -2427,6 +2437,28 @@ void initWebVars(void){
                                     .minValue = 0,
                                     .maxValue = 1,
                                     .ptr = (void*)&scheduler};
+
+    editableVars["SCHEDULER_HOUR"] = {.displayName = F("Scheduler Hour"),
+                                    .hasHelpText = true,
+                                    .helpText = F("Scheduled hour to turn on PID."),
+                                    .type = kInteger,
+                                    .section = sPowerSection,
+                                    .position = 38,
+                                    .show = [] { return true && scheduler; },
+                                    .minValue = SCHEDULER_HOUR_MIN,
+                                    .maxValue = SCHEDULER_HOUR_MAX,
+                                    .ptr = (void*)&scheduler_hour};
+
+    editableVars["SCHEDULER_MIN"] = {.displayName = F("Scheduler Minute"),
+                                    .hasHelpText = true,
+                                    .helpText = F("Scheduled minute to turn on PID."),
+                                    .type = kInteger,
+                                    .section = sPowerSection,
+                                    .position = 39,
+                                    .show = [] { return true && scheduler; },
+                                    .minValue = SCHEDULER_MIN_MIN,
+                                    .maxValue = SCHEDULER_MIN_MAX,
+                                    .ptr = (void*)&scheduler_min};
 }
 
 
@@ -2452,6 +2484,8 @@ void initMQTT(void){
     mqttVars["steamKp"] = [] { return &editableVars.at("STEAM_KP"); };
     mqttVars["standbyModeOn"] = [] { return &editableVars.at("STANDBY_MODE_ON"); };
     mqttVars["scheduler"] = [] { return &editableVars.at("SCHEDULER_ON"); };
+    mqttVars["scheduler_hour"] = [] { return &editableVars.at("SCHEDULER_HOUR"); };
+    mqttVars["scheduler_min"] = [] { return &editableVars.at("SCHEDULER_MIN"); };
 
     if (FEATURE_BREWCONTROL == 1) {
         mqttVars["brewtime"] = [] { return &editableVars.at("BREW_TIME"); };

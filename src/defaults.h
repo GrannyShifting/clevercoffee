@@ -50,6 +50,8 @@ int writeSysParamsToStorage(void);
 #define BACKFLUSH_CYCLES          10      // number of cycles the backflush should run
 #define BACKFLUSH_FILL_TIME       24      // time in seconds the pump is running during backflush
 #define BACKFLUSH_FLUSH_TIME      150     // time in seconds the 3-way valve is open during backflush
+#define SCHEDULER_HOUR            8       // 24-hour format to turn on PID
+#define SCHEDULER_MIN             10      // minute to turn on PID
 
 #define PID_KP_START_MIN         0
 #define PID_KP_START_MAX         999
@@ -101,3 +103,7 @@ int writeSysParamsToStorage(void);
 #define BACKFLUSH_FILL_TIME_MAX  100
 #define BACKFLUSH_FLUSH_TIME_MIN 5
 #define BACKFLUSH_FLUSH_TIME_MAX 500
+#define SCHEDULER_HOUR_MIN       0
+#define SCHEDULER_HOUR_MAX       23
+#define SCHEDULER_MIN_MIN        0
+#define SCHEDULER_MIN_MAX        59
