@@ -235,6 +235,8 @@ void backflush() {
                 pumpRelay.off();
                 currBackflushCycles = 0;
                 backflushState = kBackflushWaitBrewswitchOn;
+                backflushOn = 0;
+                pidON = 0;
             }
 
             break;

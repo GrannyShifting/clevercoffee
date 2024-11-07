@@ -1664,6 +1664,11 @@ void loopRotEnc () {
         }
         resetOLEDStandbyTimer();
         
+        if((inMenu == 0) && backflushOn){
+            brewSwitch->setState(HIGH);
+            return;
+        }
+
         if((inMenu == 0) && (currBrewState == kBrewIdle)){
             inMenu = 1;
             return;
@@ -1809,6 +1814,7 @@ void checkWater() {
 
 void setBackflush(int backflush) {
     backflushOn = backflush;
+    pidON = 1;
 }
 
 #if FEATURE_SCALE == 1
