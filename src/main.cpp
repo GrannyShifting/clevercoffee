@@ -1820,7 +1820,8 @@ void checkWater() {
 
 void setBackflush(int backflush) {
     backflushOn = backflush;
-    pidON = 1;
+    if (backflushOn)
+        pidON = 1;
 }
 
 #if FEATURE_SCALE == 1
