@@ -140,7 +140,7 @@ static const sto_data_t itemDefaults PROGMEM = {
     SCALE_KNOWN_WEIGHT,                                                                                                             // STO_ITEM_SCALE_KNOWN_WEIGHT
     PRE_INFUSION_PAUSE_TIME,                                                                                                        // STO_ITEM_PRE_INFUSION_PAUSE
     {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}, // free to use
-    0,                                                                                                                              // STO_ITEM_USE_PID_BD
+    1,                                                                                                                              // STO_ITEM_USE_PID_BD
     AGGBKP,                                                                                                                         // STO_ITEM_PID_KP_BD
     SCALE2_CALIBRATION_FACTOR,                                                                                                      // STO_ITEM_SCALE2_CALIBRATION_FACTOR
     AGGBTN,                                                                                                                         // STO_ITEM_PID_TN_BD

@@ -161,12 +161,12 @@ void backflush() {
         return;
     }
 
-    if (bPID.GetMode() == 1) { // Deactivate PID
-        bPID.SetMode(0);
-        pidOutput = 0;
-    }
+    // if (bPID.GetMode() == 1) { // Deactivate PID
+    //     bPID.SetMode(0);
+    //     pidOutput = 0;
+    // }
 
-    heaterRelay.off(); // Stop heating
+    // heaterRelay.off(); // Stop heating
 
     checkbrewswitch();
 
@@ -249,10 +249,11 @@ void brew() {
     unsigned long currentMillisTemp = millis();
     checkbrewswitch();
 
-    if (currStateBrewSwitch == LOW && currBrewState > kBrewIdle) {
+    if (currStateBrewSwitch == LOW && currBrewState > kBrewIdle && currBrewState < kWaitBrewOff) {
         // abort function for state machine from every state
         LOG(INFO, "Brew stopped manually");
         currBrewState = kWaitBrewOff;
+        inMenu = 1;
     }
 
     if (currBrewState > kBrewIdle && currBrewState < kWaitBrewOff || brewSwitchState == kBrewSwitchFlushOff) {
@@ -274,13 +275,9 @@ void brew() {
 
     // state machine for brew
     switch (currBrewState) {
-        case kBrewIdle: // waiting step for brew switch turning on
+        case kBrewIdle: // waiting step for brew switch turning on. Scale is tared before brewing is started.
             if (currStateBrewSwitch == HIGH && backflushState == kBackflushWaitBrewswitchOn && backflushOn == 0 && brewSwitchWasOff && machineState != kWaterEmpty) {
                 startingTime = millis();
-
-                // Tare scale before beginning the brew
-                LoadCell.tare();
-                LoadCell.setCalFactor(scaleCalibration);
 
                 if (preinfusionPause == 0 || preinfusion == 0) {
                     currBrewState = kBrewRunning;
@@ -309,7 +306,7 @@ void brew() {
             if (timeBrewed > (preinfusion * 1000)) {
                 currBrewState = kPreinfusionPause;
             }
-
+            
             break;
 
         case kPreinfusionPause: // preinfusion pause
@@ -341,15 +338,25 @@ void brew() {
 
         case kWaitBrew: // waiting time or weight brew
             lastBrewTime = timeBrewed;
-
+            
             // stop brew if target-time is reached --> No stop if stop by time is deactivated via Parameter (0)
-            if ((timeBrewed > totalBrewTime) && ((brewTime > 0))) {
+            if ((timeBrewed > totalBrewTime) && (brewTime > 0)) {
                 currBrewState = kBrewFinished;
+                pidON = 0;
+                isBrewDetected = 0;
+                clrMachineStandbyTimer();
+                inMenu = 0;
+                currMenuItem = 0; //menuList::MENU_EXIT
             }
 #if (FEATURE_SCALE == 1)
             // stop brew if target-weight is reached --> No stop if stop by weight is deactivated via Parameter (0)
             else if (((FEATURE_SCALE == 1) && (weightBrew > weightSetpoint)) && (weightSetpoint > 0)) {
                 currBrewState = kBrewFinished;
+                pidON = 0;
+                isBrewDetected = 0;
+                clrMachineStandbyTimer();
+                inMenu = 0;
+                currMenuItem = 0; //menuList::MENU_EXIT
             }
 #endif
 
@@ -370,22 +377,20 @@ void brew() {
             if ( currStateBrewSwitch == LOW || BREWSWITCH_TYPE == Switch::SW_TRIG) {
                 if (BREWSWITCH_TYPE == Switch::SW_TRIG)
                     brewSwitch->setState(LOW);
-                inMenu = 0;
 #ifdef VALVE_CONTROL
                 valveRelay.off();
 #endif
                 pumpRelay.off();
 
                 // disarmed button
-                if (millis() - startingTime > BREW_SCREEN_DELAY * 1000){
+                if ((millis() - startingTime) > (BREW_SCREEN_DELAY * 1000)){
                     currentMillisTemp = 0;
                     brewDetected = 0;          // rearm brewDetection
                     currBrewState = kBrewIdle;
                     lastBrewTime = timeBrewed; // store brewtime to show in Shottimer after brew is finished
                     timeBrewed = 0;
                     isBrewDetected = 0;
-                    pidON = 0;
-                    clrMachineStandbyTimer();
+                    weightBrew = 0;
                 }
             }
 

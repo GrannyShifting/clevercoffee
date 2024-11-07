@@ -33,9 +33,9 @@ int writeSysParamsToStorage(void);
 #define STARTKP                   45     // PID Kp (coldstart phase)
 #define STARTTN                   130    // PID Tn (coldstart phase)
 #define STEAMKP                   150    // PID kp (steam phase)
-#define AGGBKP                    50     // PID Kp (brew detection phase)
-#define AGGBTN                    0      // PID Tn (brew detection phase)
-#define AGGBTV                    20     // PID Tv (brew detection phase)
+#define AGGBKP                    200    // PID Kp (brew detection phase)
+#define AGGBTN                    0    // PID Tn (brew detection phase)
+#define AGGBTV                    0   // PID Tv (brew detection phase)
 #define BREW_TIME                 0      // brew time in seconds (only used if pump is being controlled)
 #define BREW_SW_TIME              25     // keep brew PID params for this many seconds after detection (only for software BD)
 #define BREW_SCREEN_DELAY         5      // Keep the shot time screen on for this many seconds after the brew has completed

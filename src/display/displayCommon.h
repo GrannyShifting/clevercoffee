@@ -328,14 +328,16 @@ bool displayShottimer() {
  */
 bool displayMachineState() {
     // Show the heating logo when we are in regular PID mode and more than 5degC below the set point
-    if (FEATURE_HEATINGLOGO > 0 && machineState == kPidNormal && (setpoint - temperature) > 5. && brewSwitchState != kBrewSwitchFlushOff) {
+    if (FEATURE_HEATINGLOGO > 0 && machineState == kPidNormal 
+        // && (setpoint - temperature) > 5. 
+        && brewSwitchState != kBrewSwitchFlushOff) {
         // For status info
         u8g2.clearBuffer();
 
         displayStatusbar();
 
         u8g2.drawXBMP(0, 20, Heating_Logo_width, Heating_Logo_height, Heating_Logo);
-        u8g2.setFont(u8g2_font_fub25_tf);
+        u8g2.setFont(u8g2_font_fub20_tf);
         u8g2.setCursor(50, 30);
         u8g2.print(temperature, 1);
         u8g2.drawCircle(122, 32, 3);

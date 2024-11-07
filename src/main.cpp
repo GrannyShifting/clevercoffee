@@ -244,7 +244,7 @@ double weightSetpoint = SCALE_WEIGHTSETPOINT;
 uint8_t scheduler = 0;
 
 // PID - values for offline brew detection
-uint8_t useBDPID = 0;
+uint8_t useBDPID = 1;
 double aggbKp = AGGBKP;
 double aggbTn = AGGBTN;
 double aggbTv = AGGBTV;
@@ -787,7 +787,7 @@ void handleMachineState() {
 
             if (backflushOn || backflushState > kBackflushWaitBrewswitchOn) {
                 machineState = kBackflush;
-                
+                pidON = 1;
                 if (standbyModeOn) {
                     resetMachineStandbyTimer();
                 }
@@ -826,6 +826,10 @@ void handleMachineState() {
             if (FEATURE_BREWDETECTION == 1 && BREWDETECTION_TYPE == 1) {
                 logbrew();
             }
+            
+            // if (pidON == 0) {
+            //     machineState = kPidDisabled;
+            // }
 
             if ((timeBrewed == 0 && brewDetectionMode == 3 && FEATURE_BREWCONTROL == 0) ||                   // PID + optocoupler: optocoupler BD timeBrewed == 0 -> switch is off again
                 ((currBrewState == kBrewIdle || currBrewState == kWaitBrewOff) && FEATURE_BREWCONTROL == 1)) // Hardware BD
@@ -847,10 +851,6 @@ void handleMachineState() {
                 machineState = kEmergencyStop;
             }
 
-            if (pidON == 0) {
-                machineState = kPidDisabled;
-            }
-
             if (tempSensor->hasError()) {
                 machineState = kSensorError;
             }
@@ -870,6 +870,7 @@ void handleMachineState() {
 
             if (backflushOn || backflushState > kBackflushWaitBrewswitchOn) {
                 machineState = kBackflush;
+                pidON = 1;
                 if (standbyModeOn) {
                     resetMachineStandbyTimer();
                 }
@@ -879,9 +880,9 @@ void handleMachineState() {
                 machineState = kEmergencyStop;
             }
 
-            if (pidON == 0) {
-                machineState = kPidDisabled;
-            }
+            // if (pidON == 0) {
+            //     machineState = kPidDisabled;
+            // }
 
             if (!waterFull) {
                 machineState = kWaterEmpty;
@@ -910,6 +911,7 @@ void handleMachineState() {
 
             if (backflushOn || backflushState > kBackflushWaitBrewswitchOn) {
                 machineState = kBackflush;
+                pidON = 1;
                 if (standbyModeOn) {
                     resetMachineStandbyTimer();
                 }
@@ -943,6 +945,7 @@ void handleMachineState() {
 
             if (backflushOn || backflushState > kBackflushWaitBrewswitchOn) {
                 machineState = kBackflush;
+                pidON = 1;
                 if (standbyModeOn) {
                     resetMachineStandbyTimer();
                 }
@@ -1386,6 +1389,11 @@ void setup() {
     LOGF(INFO, "LittleFS: %d%% (used %ld bytes from %ld bytes)", (int)ceil(fsUsage), LittleFS.usedBytes(), LittleFS.totalBytes());
 }
 
+void printScale(){
+    if(millis()%1000 == 0)
+        LOGF(INFO,"%.2f grams", LoadCell.getData());
+}
+
 void loop() {
     // Accept potential connections for remote logging
     Logger::update();
@@ -1400,6 +1408,8 @@ void loop() {
     loopLED();
 
     loopRotEnc();
+
+    printScale();
 
     // pumpRelay.on();
     // delay(1000);
@@ -1665,10 +1675,6 @@ void loopRotEnc () {
                     inMenu = 0;
                     break;
                 case (MENU_BREW):
-                    u8g2.clearBuffer();
-                    u8g2.setFont(u8g2_font_profont17_tf);
-                    u8g2.drawStr(0, 23, "Taring");
-                    u8g2.sendBuffer();
                     brewSwitch->setState(HIGH);
                     inMenu = 2;
                     break;
@@ -1677,6 +1683,8 @@ void loopRotEnc () {
                 case (MENU_PID):
                 case (MENU_STEAM):
                     inMenu = 2;
+                    break;
+                default:
                     break;
             }
             return;
@@ -1687,7 +1695,7 @@ void loopRotEnc () {
                 case (MENU_BREW):
                     if (BREWSWITCH_TYPE == Switch::SW_TRIG)
                         brewSwitch->setState(LOW);
-                    inMenu = 0;
+                    inMenu = 1;
                     break;
                 case (MENU_PID):
                     inMenu = 1;
@@ -1706,6 +1714,8 @@ void loopRotEnc () {
                     sysParaBrewSetpoint.setStorage();
                     inMenu = 1;
                     storageCommit();
+                    break;
+                default:
                     break;
             }
             return;
