@@ -85,7 +85,7 @@ void checkWeight() {
 #endif
 
     if (scaleCalibrationOn) {
-        resetOLEDStandbyTimer();
+        restartDisplayTime();
         scaleCalibrate(LoadCell, PIN_HXDAT, STO_ITEM_SCALE_CALIBRATION_FACTOR, &scaleCalibration);
 #if SCALE_TYPE == 0
         scaleCalibrate(LoadCell2, PIN_HXDAT2, STO_ITEM_SCALE2_CALIBRATION_FACTOR, &scale2Calibration);

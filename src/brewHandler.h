@@ -346,7 +346,6 @@ void brew() {
                 currBrewState = kBrewFinished;
                 pidON = 0;
                 isBrewDetected = 0;
-                clrMachineStandbyTimer();
                 inMenu = 0;
                 currMenuItem = 0; //menuList::MENU_EXIT
             }
@@ -356,7 +355,6 @@ void brew() {
                 currBrewState = kBrewFinished;
                 pidON = 0;
                 isBrewDetected = 0;
-                clrMachineStandbyTimer();
                 inMenu = 0;
                 currMenuItem = 0; //menuList::MENU_EXIT
             }

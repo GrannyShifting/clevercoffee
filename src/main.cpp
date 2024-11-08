@@ -212,10 +212,12 @@ char* number2string(int in);
 char* number2string(unsigned int in);
 float filterPressureValue(float input);
 int writeSysParamsToMQTT(bool continueOnError);
-void updateStandbyTimer(void);
-void resetMachineStandbyTimer(void);
-void clrMachineStandbyTimer(void);
-void resetOLEDStandbyTimer(void);
+void restartDisplayTime();
+void restartStandbyTime();
+// void updateStandbyTimer(void);
+// void resetMachineStandbyTimer(void);
+// void clrMachineStandbyTimer(void);
+// void resetOLEDStandbyTimer(void);
 void initWebVars(void);
 void initMQTT(void);
 void checkMillisOverflow(void);
@@ -265,8 +267,6 @@ double brewPIDDelay = BREW_PID_DELAY;    // use userConfig brew detection PID de
 
 uint8_t standbyModeOn = 1;
 double standbyModeTime = STANDBY_MODE_TIME;
-
-#include "standby.h"
 
 // system parameter EEPROM storage wrappers (current value as pointer to variable, minimum, maximum, optional storage ID)
 SysPara<uint8_t> sysParaPidOn(&pidON, 0, 1, STO_ITEM_PID_ON);
@@ -462,6 +462,7 @@ Timer printDisplayTimer(&printScreen, 100);
 #include "powerHandler.h"
 #include "scaleHandler.h"
 #include "steamHandler.h"
+#include "standby.h"
 
 // If millis() gets too close to max unsigned long uint32 value. Primitively reset to avoid issues.
 // Proper fix is to refactor the millis() variables to subtract instead of compare directly.
@@ -795,7 +796,7 @@ void handleMachineState() {
                 machineState = kBackflush;
                 pidON = 1;
                 if (standbyModeOn) {
-                    resetMachineStandbyTimer();
+                    restartStandbyTime();
                 }
             }
 
@@ -803,12 +804,8 @@ void handleMachineState() {
                 machineState = kEmergencyStop;
             }
 
-            if (standbyModeOn && standbyModeRemainingTimeMillis == 0) {
+            if (standbyModeOn && pidON == 0) {
                 machineState = kPidDisabled;
-                pidON = 0;
-                clrMachineStandbyTimer();
-                // sysParaPidOn.setStorage();
-                // storageCommit();
             }
 
             if (pidON == 0 && machineState != kStandby) {
@@ -878,7 +875,7 @@ void handleMachineState() {
                 machineState = kBackflush;
                 pidON = 1;
                 if (standbyModeOn) {
-                    resetMachineStandbyTimer();
+                    restartStandbyTime();
                 }
             }
 
@@ -919,7 +916,7 @@ void handleMachineState() {
                 machineState = kBackflush;
                 pidON = 1;
                 if (standbyModeOn) {
-                    resetMachineStandbyTimer();
+                    restartStandbyTime();
                 }
             }
 
@@ -953,7 +950,7 @@ void handleMachineState() {
                 machineState = kBackflush;
                 pidON = 1;
                 if (standbyModeOn) {
-                    resetMachineStandbyTimer();
+                    restartStandbyTime();
                 }
             }
 
@@ -973,7 +970,6 @@ void handleMachineState() {
         case kBackflush:
             if (backflushOn == 0) {
                 pidON = 0;
-                clrMachineStandbyTimer();
                 machineState = kPidDisabled;
             }
 
@@ -1023,17 +1019,17 @@ void handleMachineState() {
             break;
 
         case kPidDisabled:
-            if (standbyModeRemainingTimeDisplayOffMillis == 0) {
+            if (displayAwake == 0) {
 #if OLED_DISPLAY != 0
                 u8g2.setPowerSave(1);
-#endif
+#endif 
             }
 
             brewDetection();
 
             if (pidON || steamON || isBrewDetected) {
                 pidON = 1;
-                resetMachineStandbyTimer();
+                restartStandbyTime();
 
                 if (steamON) {
                     machineState = kSteam;
@@ -1057,17 +1053,17 @@ void handleMachineState() {
             break;
 
         case kStandby:
-            if (standbyModeRemainingTimeDisplayOffMillis == 0) {
+            if (displayAwake == 0) {
 #if OLED_DISPLAY != 0
                 u8g2.setPowerSave(1);
-#endif
+#endif          
             }
 
             brewDetection();
 
             if (pidON || steamON || isBrewDetected) {
                 pidON = 1;
-                resetMachineStandbyTimer();
+                restartStandbyTime();
 
                 if (steamON) {
                     machineState = kSteam;
@@ -1201,8 +1197,9 @@ void wiFiSetup() {
 void websiteSetup() {
     setEepromWriteFcn(writeSysParamsToStorage);
 
-    if(!readSysParamsFromStorage())
-        Serial.println("FAILED TO LOAD A PARAMETER FROM STORAGE");
+    uint32_t res = readSysParamsFromStorage();
+    if (res != 0)
+        LOGF(INFO, "Failed to load parameter from storage: %u", res);
 
     serverSetup();
 }
@@ -1225,6 +1222,8 @@ void setup() {
     initMQTT();
 
     initTimer1();
+    initStandbyDisplayTimers();
+
 
     storageSetup();
 
@@ -1385,12 +1384,13 @@ void setup() {
     rotaryEncoder.setBoundaries(-10000, 10000, true); 
     rotaryEncoder.disableAcceleration();
 
-    resetOLEDStandbyTimer();
+    restartDisplayTime();
 
     setupDone = true;
 
     enableTimer1();
-
+    enableStandyDisplayTimer();
+    
     double fsUsage = ((double)LittleFS.usedBytes() / LittleFS.totalBytes()) * 100;
     LOGF(INFO, "LittleFS: %d%% (used %ld bytes from %ld bytes)", (int)ceil(fsUsage), LittleFS.usedBytes(), LittleFS.totalBytes());
 }
@@ -1483,7 +1483,7 @@ void looppid() {
             // Monday - Friday
             if ( (1<=timeinfo.tm_wday<= 5) && timeinfo.tm_hour == scheduler_hour && timeinfo.tm_min == scheduler_min) {
                 pidON = 1;
-                resetMachineStandbyTimer();
+                restartStandbyTime();
                 LOGF(INFO, "Turning on PID per scheduled time");
             }
         }
@@ -1553,7 +1553,7 @@ void looppid() {
         setpoint = brewSetpoint;
     }
 
-    updateStandbyTimer();
+    // updateStandbyTimer();
 
     handleMachineState();
 
@@ -1663,12 +1663,13 @@ void loopRotEnc () {
     if (rotaryEncoder.isEncoderButtonClicked()) {
         
         
-        if (standbyModeRemainingTimeDisplayOffMillis == 0) {
+        if (displayAwake == 0) {
             u8g2.setPowerSave(0);
-            resetOLEDStandbyTimer();
+            restartDisplayTime();
+            displayAwake = 1;
             return;
         }
-        resetOLEDStandbyTimer();
+        restartDisplayTime();
         
         if((inMenu == 0) && backflushOn){
             brewSwitch->setState(HIGH);
@@ -1737,12 +1738,13 @@ void loopRotEnc () {
     long encoderVal = rotaryEncoder.encoderChanged();
 
     if (encoderVal != 0) {
-        if (standbyModeRemainingTimeDisplayOffMillis == 0) {
+        if (displayAwake == 0) {
             u8g2.setPowerSave(0);
-            resetOLEDStandbyTimer();
+            restartDisplayTime();
+            displayAwake = 1;
             return;
         }
-        resetOLEDStandbyTimer();
+        restartDisplayTime();
     }
 
     if (encoderVal > 0) {
@@ -1762,7 +1764,7 @@ void loopRotEnc () {
                     break;
                 case (MENU_PID):
                     pidON = 1;
-                    resetMachineStandbyTimer();
+                    restartStandbyTime();
                     break;
                 case (MENU_STEAM):
                     if (steamSetpoint + 1.0 <= STEAM_SETPOINT_MAX)            
@@ -1790,7 +1792,6 @@ void loopRotEnc () {
                     break;
                 case (MENU_PID):
                     pidON = 0;
-                    clrMachineStandbyTimer();
                     break;
                 case (MENU_STEAM):
                     if (steamSetpoint - 1.0 >= STEAM_SETPOINT_MIN)            
@@ -1821,7 +1822,10 @@ void checkWater() {
 void setBackflush(int backflush) {
     backflushOn = backflush;
     if (backflushOn)
+    {
         pidON = 1;
+        restartStandbyTime();
+    }
 }
 
 #if FEATURE_SCALE == 1
@@ -1856,10 +1860,8 @@ void setSteamMode(int steamMode) {
 void setPidStatus(int pidStatus) {
     pidON = pidStatus;
 
-    if (pidON == 0)
-        clrMachineStandbyTimer();
-    else
-        resetMachineStandbyTimer();
+    if (pidON == 1)
+        restartStandbyTime();
 
     // if (pidStatus == 0){
     //     sysParaPidOn.setStorage();
@@ -1914,41 +1916,41 @@ void setBDPIDTunings() {
  * @return 0 = success, < 0 = failure
  */
 int readSysParamsFromStorage(void) {
-    if (sysParaPidOn.getStorage() != 0) return -1;
-    if (sysParaUsePonM.getStorage() != 0) return -1;
-    if (sysParaPidKpStart.getStorage() != 0) return -1;
-    if (sysParaPidTnStart.getStorage() != 0) return -1;
-    if (sysParaPidKpReg.getStorage() != 0) return -1;
-    if (sysParaPidTnReg.getStorage() != 0) return -1;
-    if (sysParaPidTvReg.getStorage() != 0) return -1;
-    if (sysParaPidIMaxReg.getStorage() != 0) return -1;
-    if (sysParaBrewSetpoint.getStorage() != 0) return -1;
-    if (sysParaTempOffset.getStorage() != 0) return -1;
-    if (sysParaBrewPIDDelay.getStorage() != 0) return -1;
-    if (sysParaUseBDPID.getStorage() != 0) return -1;
-    if (sysParaPidKpBd.getStorage() != 0) return -1;
-    if (sysParaPidTnBd.getStorage() != 0) return -1;
-    if (sysParaPidTvBd.getStorage() != 0) return -1;
-    if (sysParaBrewTime.getStorage() != 0) return -1;
-    if (sysParaBrewSwTime.getStorage() != 0) return -1;
-    if (sysParaBrewThresh.getStorage() != 0) return -1;
-    if (sysParaPreInfTime.getStorage() != 0) return -1;
-    if (sysParaPreInfPause.getStorage() != 0) return -1;
-    if (sysParaPidKpSteam.getStorage() != 0) return -1;
-    if (sysParaSteamSetpoint.getStorage() != 0) return -1;
-    if (sysParaWeightSetpoint.getStorage() != 0) return -1;
-    if (sysParaWifiCredentialsSaved.getStorage() != 0) return -1;
-    if (sysParaStandbyModeOn.getStorage() != 0) return -1;
-    if (sysParaStandbyModeTime.getStorage() != 0) return -1;
-    if (sysParaScaleCalibration.getStorage() != 0) return -1;
-    if (sysParaScale2Calibration.getStorage() != 0) return -1;
-    if (sysParaScaleKnownWeight.getStorage() != 0) return -1;
-    if (sysParaBackflushCycles.getStorage() != 0) return -1;
-    if (sysParaBackflushFillTime.getStorage() != 0) return -1;
-    if (sysParaBackflushFlushTime.getStorage() != 0) return -1;
-    if (sysParaScheduler.getStorage() != 0) return -1;
-    if (sysParaSchedulerHour.getStorage() != 0) return -1;
-    if (sysParaSchedulerMin.getStorage() != 0) return -1;
+    if (sysParaPidOn.getStorage() != 0) return 1;
+    if (sysParaUsePonM.getStorage() != 0) return 2;
+    if (sysParaPidKpStart.getStorage() != 0) return 3;
+    if (sysParaPidTnStart.getStorage() != 0) return 4;
+    if (sysParaPidKpReg.getStorage() != 0) return 5;
+    if (sysParaPidTnReg.getStorage() != 0) return 6;
+    if (sysParaPidTvReg.getStorage() != 0) return 7;
+    if (sysParaPidIMaxReg.getStorage() != 0) return 8;
+    if (sysParaBrewSetpoint.getStorage() != 0) return 9;
+    if (sysParaTempOffset.getStorage() != 0) return 10;
+    if (sysParaBrewPIDDelay.getStorage() != 0) return 11;
+    if (sysParaUseBDPID.getStorage() != 0) return 12;
+    if (sysParaPidKpBd.getStorage() != 0) return 13;
+    if (sysParaPidTnBd.getStorage() != 0) return 14;
+    if (sysParaPidTvBd.getStorage() != 0) return 15;
+    if (sysParaBrewTime.getStorage() != 0) return 16;
+    if (sysParaBrewSwTime.getStorage() != 0) return 17;
+    if (sysParaBrewThresh.getStorage() != 0) return 18;
+    if (sysParaPreInfTime.getStorage() != 0) return 19;
+    if (sysParaPreInfPause.getStorage() != 0) return 20;
+    if (sysParaPidKpSteam.getStorage() != 0) return 21;
+    if (sysParaSteamSetpoint.getStorage() != 0) return 22;
+    if (sysParaWeightSetpoint.getStorage() != 0) return 23;
+    if (sysParaWifiCredentialsSaved.getStorage() != 0) return 24;
+    if (sysParaStandbyModeOn.getStorage() != 0) return 25;
+    if (sysParaStandbyModeTime.getStorage() != 0) return 26;
+    if (sysParaScaleCalibration.getStorage() != 0) return 27;
+    if (sysParaScale2Calibration.getStorage() != 0) return 28;
+    if (sysParaScaleKnownWeight.getStorage() != 0) return 29;
+    if (sysParaBackflushCycles.getStorage() != 0) return 30;
+    if (sysParaBackflushFillTime.getStorage() != 0) return 31;
+    if (sysParaBackflushFlushTime.getStorage() != 0) return 32;
+    if (sysParaScheduler.getStorage() != 0) return 33;
+    if (sysParaSchedulerHour.getStorage() != 0) return 34;
+    if (sysParaSchedulerMin.getStorage() != 0) return 35;
 
     return 0;
 }
@@ -2523,7 +2525,7 @@ void initMQTT(void){
     // Values reported to MQTT
     mqttSensors["temperature"] = [] { return temperature; };
     mqttSensors["heaterPower"] = [] { return pidOutput / 10; };
-    mqttSensors["standbyModeTimeRemaining"] = [] { return standbyModeRemainingTimeMillis / 1000; };
+    // mqttSensors["standbyModeTimeRemaining"] = [] { return standbyModeRemainingTimeMillis / 1000; };
     mqttSensors["currentKp"] = [] { return bPID.GetKp(); };
     mqttSensors["currentKi"] = [] { return bPID.GetKi(); };
     mqttSensors["currentKd"] = [] { return bPID.GetKd(); };
