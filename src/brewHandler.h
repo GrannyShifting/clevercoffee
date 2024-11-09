@@ -251,7 +251,7 @@ void brew() {
     unsigned long currentMillisTemp = millis();
     checkbrewswitch();
 
-    if (currStateBrewSwitch == LOW && currBrewState > kBrewIdle && currBrewState < kWaitBrewOff) {
+    if (currStateBrewSwitch == LOW && currBrewState > kBrewIdle && currBrewState < kBrewFinished) {
         // abort function for state machine from every state
         LOG(INFO, "Brew stopped manually");
         currBrewState = kWaitBrewOff;
@@ -346,8 +346,8 @@ void brew() {
                 currBrewState = kBrewFinished;
                 pidON = 0;
                 isBrewDetected = 0;
-                inMenu = 0;
-                currMenuItem = 0; //menuList::MENU_EXIT
+                // inMenu = 0;
+                // currMenuItem = 0; //menuList::MENU_EXIT
             }
 #if (FEATURE_SCALE == 1)
             // stop brew if target-weight is reached --> No stop if stop by weight is deactivated via Parameter (0)
@@ -355,8 +355,8 @@ void brew() {
                 currBrewState = kBrewFinished;
                 pidON = 0;
                 isBrewDetected = 0;
-                inMenu = 0;
-                currMenuItem = 0; //menuList::MENU_EXIT
+                // inMenu = 0;
+                // currMenuItem = 0; //menuList::MENU_EXIT
             }
 #endif
 
@@ -368,8 +368,13 @@ void brew() {
             valveRelay.off();
 #endif
             pumpRelay.off();
-            currBrewState = kWaitBrewOff;
-            startingTime = millis();
+
+            if ( currStateBrewSwitch == LOW ) {
+                startingTime = millis();
+                inMenu = 0;
+                currMenuItem = 0; //menuList::MENU_EXIT
+                currBrewState = kWaitBrewOff;
+            }
 
             break;
 
@@ -383,15 +388,15 @@ void brew() {
                 pumpRelay.off();
 
                 // disarmed button
-                if ((millis() - startingTime) > (BREW_SCREEN_DELAY * 1000)){
-                    currentMillisTemp = 0;
-                    brewDetected = 0;          // rearm brewDetection
-                    currBrewState = kBrewIdle;
-                    lastBrewTime = timeBrewed; // store brewtime to show in Shottimer after brew is finished
-                    timeBrewed = 0;
-                    isBrewDetected = 0;
-                    weightBrew = 0;
-                }
+                // if ((millis() - startingTime) > (BREW_SCREEN_DELAY * 1000)){
+                currentMillisTemp = 0;
+                brewDetected = 0;          // rearm brewDetection
+                currBrewState = kBrewIdle;
+                lastBrewTime = timeBrewed; // store brewtime to show in Shottimer after brew is finished
+                timeBrewed = 0;
+                isBrewDetected = 0;
+                weightBrew = 0;
+                // }
             }
 
             break;

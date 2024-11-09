@@ -835,7 +835,7 @@ void handleMachineState() {
             // }
 
             if ((timeBrewed == 0 && brewDetectionMode == 3 && FEATURE_BREWCONTROL == 0) ||                   // PID + optocoupler: optocoupler BD timeBrewed == 0 -> switch is off again
-                ((currBrewState == kBrewIdle || currBrewState == kWaitBrewOff) && FEATURE_BREWCONTROL == 1)) // Hardware BD
+                ((currBrewState == kBrewIdle || currBrewState == kWaitBrewOff || currBrewState == kBrewFinished) && FEATURE_BREWCONTROL == 1)) // Hardware BD
             {
                 // delay shot timer display for voltage sensor or hw brew toggle switch (brew counter)
                 machineState = kShotTimerAfterBrew;
@@ -862,7 +862,7 @@ void handleMachineState() {
         case kShotTimerAfterBrew:
             brewDetection();
 
-            if (millis() - lastBrewTimeMillis > SHOTTIMERDISPLAYDELAY) {
+            if (currBrewState == kBrewIdle) {
                 LOGF(INFO, "Shot time: %4.1f s", lastBrewTime / 1000);
                 machineState = kBrewDetectionTrailing;
             }
@@ -2372,7 +2372,7 @@ void initWebVars(void){
                                           .type = kDouble,
                                           .section = sPowerSection,
                                           .position = 31,
-                                          .show = [] { return true; },
+                                          .show = [] { return false; },
                                           .minValue = STANDBY_MODE_TIME_MIN,
                                           .maxValue = STANDBY_MODE_TIME_MAX,
                                           .ptr = (void*)&standbyModeTime};

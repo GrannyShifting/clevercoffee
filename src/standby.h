@@ -6,8 +6,8 @@
 
 #pragma once
 
-#define TIME_TO_DISPLAY_OFF 60000000
-#define TIME_TO_STANDBY     1800000000
+#define TIME_TO_DISPLAY_OFF 60000000    // 1 min
+#define TIME_TO_STANDBY     1800000000  // 30 mins
 uint8_t displayAwake = 1;
 hw_timer_t* timerDisplay = NULL;
 hw_timer_t* timerStandby = NULL;

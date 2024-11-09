@@ -338,9 +338,17 @@ bool displayMachineState() {
 
         u8g2.drawXBMP(0, 20, Heating_Logo_width, Heating_Logo_height, Heating_Logo);
         u8g2.setFont(u8g2_font_fub20_tf);
-        u8g2.setCursor(50, 30);
+        u8g2.setCursor(50, 20);
         u8g2.print(temperature, 1);
-        u8g2.drawCircle(122, 32, 3);
+        u8g2.drawCircle(122, 22, 3);
+        
+        char buff[10];
+
+        u8g2.setFont(u8g2_font_fub11_tf);
+        u8g2.setCursor(70, 45);
+        sprintf(buff, "%3u",uint32_t(abs(weight)));
+        u8g2.print(buff);
+        u8g2.print('g');
 
         u8g2.sendBuffer();
         return true;
