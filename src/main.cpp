@@ -776,20 +776,10 @@ void handleMachineState() {
 
             if ((timeBrewed > 0 && FEATURE_BREWCONTROL == 0) || (FEATURE_BREWCONTROL == 1 && currBrewState > kBrewIdle && currBrewState <= kBrewFinished)) {
                 machineState = kBrew;
-
-                if (standbyModeOn) {
-                    // resetMachineStandbyTimer();
-                    // resetOLEDStandbyTimer();
-                }
             }
 
             if (steamON == 1) {
                 machineState = kSteam;
-
-                if (standbyModeOn) {
-                    // resetMachineStandbyTimer();
-                    // resetOLEDStandbyTimer();
-                }
             }
 
             if (backflushOn || backflushState > kBackflushWaitBrewswitchOn) {
@@ -829,10 +819,6 @@ void handleMachineState() {
             if (FEATURE_BREWDETECTION == 1 && BREWDETECTION_TYPE == 1) {
                 logbrew();
             }
-            
-            // if (pidON == 0) {
-            //     machineState = kPidDisabled;
-            // }
 
             if ((timeBrewed == 0 && brewDetectionMode == 3 && FEATURE_BREWCONTROL == 0) ||                   // PID + optocoupler: optocoupler BD timeBrewed == 0 -> switch is off again
                 ((currBrewState == kBrewIdle || currBrewState == kWaitBrewOff || currBrewState == kBrewFinished) && FEATURE_BREWCONTROL == 1)) // Hardware BD
@@ -882,10 +868,6 @@ void handleMachineState() {
             if (emergencyStop) {
                 machineState = kEmergencyStop;
             }
-
-            // if (pidON == 0) {
-            //     machineState = kPidDisabled;
-            // }
 
             if (!waterFull) {
                 machineState = kWaterEmpty;
@@ -1395,11 +1377,6 @@ void setup() {
     LOGF(INFO, "LittleFS: %d%% (used %ld bytes from %ld bytes)", (int)ceil(fsUsage), LittleFS.usedBytes(), LittleFS.totalBytes());
 }
 
-void printScale(){
-    if(millis()%1000 == 0)
-        LOGF(INFO,"%.2f grams", LoadCell.getData());
-}
-
 void loop() {
     // Accept potential connections for remote logging
     Logger::update();
@@ -1414,13 +1391,6 @@ void loop() {
     loopLED();
 
     loopRotEnc();
-
-    // printScale();
-
-    // pumpRelay.on();
-    // delay(1000);
-    // pumpRelay.off();
-    // delay(1000);
 
 }
 
@@ -1481,7 +1451,7 @@ void looppid() {
         }
         else{
             // Monday - Friday
-            if ( (1<=timeinfo.tm_wday<= 5) && timeinfo.tm_hour == scheduler_hour && timeinfo.tm_min == scheduler_min) {
+            if ( 1<=timeinfo.tm_wday && timeinfo.tm_wday <= 5 && timeinfo.tm_hour == scheduler_hour && timeinfo.tm_min == scheduler_min) {
                 pidON = 1;
                 restartStandbyTime();
                 LOGF(INFO, "Turning on PID per scheduled time");
@@ -1916,7 +1886,7 @@ void setBDPIDTunings() {
  * @return 0 = success, < 0 = failure
  */
 int readSysParamsFromStorage(void) {
-    if (sysParaPidOn.getStorage() != 0) return 1;
+    // if (sysParaPidOn.getStorage() != 0) return 1;
     if (sysParaUsePonM.getStorage() != 0) return 2;
     if (sysParaPidKpStart.getStorage() != 0) return 3;
     if (sysParaPidTnStart.getStorage() != 0) return 4;
@@ -1961,7 +1931,7 @@ int readSysParamsFromStorage(void) {
  * @return 0 = success, < 0 = failure
  */
 int writeSysParamsToStorage(void) {
-    if (sysParaPidOn.setStorage() != 0) return -1;
+    // if (sysParaPidOn.setStorage() != 0) return -1;
     if (sysParaUsePonM.setStorage() != 0) return -1;
     if (sysParaPidKpStart.setStorage() != 0) return -1;
     if (sysParaPidTnStart.setStorage() != 0) return -1;

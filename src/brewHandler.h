@@ -161,13 +161,6 @@ void backflush() {
         return;
     }
 
-    // if (bPID.GetMode() == 1) { // Deactivate PID
-    //     bPID.SetMode(0);
-    //     pidOutput = 0;
-    // }
-
-    // heaterRelay.off(); // Stop heating
-
     checkbrewswitch();
 
     if (currStateBrewSwitch == LOW && backflushState != kBackflushWaitBrewswitchOn) { // Abort function for state machine from every state
@@ -254,8 +247,7 @@ void brew() {
     if (currStateBrewSwitch == LOW && currBrewState > kBrewIdle && currBrewState < kBrewFinished) {
         // abort function for state machine from every state
         LOG(INFO, "Brew stopped manually");
-        currBrewState = kWaitBrewOff;
-        inMenu = 1;
+        currBrewState = kBrewFinished;
     }
 
     if (currBrewState > kBrewIdle && currBrewState < kWaitBrewOff || brewSwitchState == kBrewSwitchFlushOff) {
@@ -344,19 +336,11 @@ void brew() {
             // stop brew if target-time is reached --> No stop if stop by time is deactivated via Parameter (0)
             if ((timeBrewed > totalBrewTime) && (brewTime > 0)) {
                 currBrewState = kBrewFinished;
-                pidON = 0;
-                isBrewDetected = 0;
-                // inMenu = 0;
-                // currMenuItem = 0; //menuList::MENU_EXIT
             }
 #if (FEATURE_SCALE == 1)
             // stop brew if target-weight is reached --> No stop if stop by weight is deactivated via Parameter (0)
             else if (((FEATURE_SCALE == 1) && (weightBrew > weightSetpoint)) && (weightSetpoint > 0)) {
                 currBrewState = kBrewFinished;
-                pidON = 0;
-                isBrewDetected = 0;
-                // inMenu = 0;
-                // currMenuItem = 0; //menuList::MENU_EXIT
             }
 #endif
 
@@ -367,6 +351,10 @@ void brew() {
 #ifdef VALVE_CONTROL
             valveRelay.off();
 #endif
+            
+            pidON = 0;
+            isBrewDetected = 0;
+
             pumpRelay.off();
 
             if ( currStateBrewSwitch == LOW ) {
@@ -388,7 +376,6 @@ void brew() {
                 pumpRelay.off();
 
                 // disarmed button
-                // if ((millis() - startingTime) > (BREW_SCREEN_DELAY * 1000)){
                 currentMillisTemp = 0;
                 brewDetected = 0;          // rearm brewDetection
                 currBrewState = kBrewIdle;
@@ -396,7 +383,6 @@ void brew() {
                 timeBrewed = 0;
                 isBrewDetected = 0;
                 weightBrew = 0;
-                // }
             }
 
             break;
