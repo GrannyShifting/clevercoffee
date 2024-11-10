@@ -1310,7 +1310,6 @@ void setup() {
         wm.disconnect();            // no wm
         readSysParamsFromStorage(); // get all parameters from storage
         offlineMode = 1;            // offline mode
-        // pidON = 1;                  // pid on
     }
 
     // Start the logger
@@ -1833,10 +1832,6 @@ void setPidStatus(int pidStatus) {
     if (pidON == 1)
         restartStandbyTime();
 
-    // if (pidStatus == 0){
-    //     sysParaPidOn.setStorage();
-    //     storageCommit();
-    // }
 }
 
 void setNormalPIDTunings() {
