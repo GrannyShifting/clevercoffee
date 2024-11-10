@@ -14,6 +14,8 @@ hw_timer_t* timerStandby = NULL;
 
 void sleepDisplay()
 {
+    if (machineState != kPidDisabled || machineState != kStandby)
+        return;
     displayAwake = 0;
 }
 
