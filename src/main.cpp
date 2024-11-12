@@ -326,6 +326,15 @@ int isBrewDetected = 0; // flag is set if brew was detected
 // PID controller
 unsigned long previousMillistemp; // initialisation at the end of init()
 
+//Time for button state
+unsigned long startButtonPressMillis = 0;
+unsigned long startPurgeMillis = 0;
+unsigned long longPressMillis = 1000;
+bool currButtonState;
+bool buttonReleased = false;
+bool purging = false;
+#define BREW_PURGE_TIME_MS  10000
+
 double setpointTemp;
 double previousInput = 0;
 
@@ -1629,8 +1638,35 @@ void loopLED() {
 
 void loopRotEnc () {
     
-    if (rotaryEncoder.isEncoderButtonClicked()) {
-        
+    currButtonState = rotaryEncoder.isEncoderButtonDown();
+    bool clicked = rotaryEncoder.isEncoderButtonClicked();
+
+    if(!purging && startButtonPressMillis == 0 && currButtonState) {
+        startButtonPressMillis = millis();
+    }
+
+    if (startButtonPressMillis != 0 && (millis() - startButtonPressMillis) > longPressMillis){
+        if(rotaryEncoder.isEncoderButtonDown() && inMenu == 1 && currMenuItem == MENU_BREW){
+            purging = true;
+            startPurgeMillis = millis();
+            pumpRelay.on();
+        }
+        startButtonPressMillis = 0;
+    }
+
+    if (purging && (millis() - startPurgeMillis > BREW_PURGE_TIME_MS || (buttonReleased && currButtonState))){
+        pumpRelay.off();
+        startPurgeMillis = 0;
+        purging = false;
+        buttonReleased = false;
+        return;
+    }
+
+    if (purging && !currButtonState)
+        buttonReleased = true;
+    
+
+    if (!purging && clicked) {
         
         if (displayAwake == 0) {
             u8g2.setPowerSave(0);
@@ -1716,7 +1752,7 @@ void loopRotEnc () {
         restartDisplayTime();
     }
 
-    if (encoderVal > 0) {
+    if (!purging && encoderVal > 0) {
         if ((inMenu == 1) && (currMenuItem < sizeof(menu)/sizeof(menu[0])-1)){
             currMenuItem++;
             return;
@@ -1744,7 +1780,7 @@ void loopRotEnc () {
         }
     }
 
-    if (encoderVal < 0) {
+    if (!purging && encoderVal < 0) {
         if ((inMenu == 1) && (currMenuItem > 0)){
             currMenuItem--;
             return;

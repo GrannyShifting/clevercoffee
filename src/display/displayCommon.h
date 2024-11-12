@@ -23,7 +23,7 @@ menuList menuState = MENU_EXIT;
 
 String menu[] = {   
     "Exit",
-    "Brew",
+    "Brew/Purge",
     "Yield",
     "Temp",
     "PID",
