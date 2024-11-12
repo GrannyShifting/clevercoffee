@@ -1648,6 +1648,7 @@ void loopRotEnc () {
     if (startButtonPressMillis != 0 && (millis() - startButtonPressMillis) > longPressMillis){
         if(rotaryEncoder.isEncoderButtonDown() && inMenu == 1 && currMenuItem == MENU_BREW){
             purging = true;
+            inMenu = 0;
             startPurgeMillis = millis();
             pumpRelay.on();
         }
