@@ -348,7 +348,10 @@ bool displayMachineState() {
         u8g2.setFont(u8g2_font_fub20_tf);
         u8g2.setCursor(50, 20);
         u8g2.print(temperature, 1);
-        u8g2.drawCircle(122, 22, 3);
+        if (temperature >= 100.0)
+            u8g2.drawCircle(122, 22, 3);
+        else
+            u8g2.drawCircle(109, 22, 3);
         
         char buff[10];
 
@@ -524,8 +527,10 @@ void displayMenu() {
         u8g2.print('C');
         
         u8g2.setCursor(66, 23);
-        sprintf(buff, "%u",pidON);
-        u8g2.print(buff);
+        if(pidON)
+            u8g2.print("ON");
+        else
+            u8g2.print("OFF");
         
         u8g2.setCursor(66, 43);
         sprintf(buff, "%.1f",steamSetpoint);
