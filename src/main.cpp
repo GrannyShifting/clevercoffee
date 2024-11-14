@@ -1541,7 +1541,8 @@ void looppid() {
 #endif
 
     if (machineState == kPidDisabled || machineState == kWaterEmpty || machineState == kSensorError || 
-        machineState == kEmergencyStop || machineState == kEepromError || machineState == kStandby || brewPIDDisabled) {
+        machineState == kEmergencyStop || machineState == kEepromError || machineState == kStandby ||
+        machineState == kShotTimerAfterBrew || brewPIDDisabled ) {
         if (bPID.GetMode() == 1) {
             // Force PID shutdown
             bPID.SetMode(0);

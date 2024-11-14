@@ -278,13 +278,18 @@ bool displayShottimer() {
         }
 
 #if (FEATURE_SCALE == 1)
-        u8g2.setFont(u8g2_font_profont22_tf);
-        u8g2.setCursor(64, 15);
-        u8g2.print(timeBrewed / 1000, 1);
-        u8g2.print("s");
-        u8g2.setCursor(64, 38);
+        u8g2.setFont(u8g2_font_helvB12_tf);
+        u8g2.setCursor(65, 0);
         u8g2.print(weightBrew, 1);
         u8g2.print("g");
+        u8g2.setCursor(65, 21);
+        u8g2.print(timeBrewed / 1000, 1);
+        u8g2.print("s");
+        u8g2.setCursor(65, 42);
+        if ((timeBrewed-firstDripTime) != 0){
+            u8g2.print(weightBrew/((timeBrewed-firstDripTime) / 1000), 1);
+            u8g2.print("g/s");
+        }
         u8g2.setFont(u8g2_font_profont11_tf);
 #else
         displayBrewtime(48, 25, timeBrewed);
@@ -304,13 +309,16 @@ bool displayShottimer() {
         u8g2.drawXBMP(-1, 11, Brew_Cup_Logo_width, Brew_Cup_Logo_height, Brew_Cup_Logo);
 
 #if (FEATURE_SCALE == 1)
-        u8g2.setFont(u8g2_font_profont22_tf);
-        u8g2.setCursor(64, 15);
+        u8g2.setFont(u8g2_font_helvB12_tf);
+        u8g2.setCursor(65, 0);
+        u8g2.print(lastWeightBrew, 1);
+        u8g2.print("g");
+        u8g2.setCursor(65, 21);
         u8g2.print(lastBrewTime / 1000, 1);
         u8g2.print("s");
-        u8g2.setCursor(64, 38);
-        u8g2.print(weightBrew, 1);
-        u8g2.print("g");
+        u8g2.setCursor(65, 42);
+        u8g2.print(lastWeightBrew/((lastBrewTime-firstDripTime) / 1000), 1);
+        u8g2.print("g/s");
         u8g2.setFont(u8g2_font_profont11_tf);
 #else
         displayBrewtime(48, 25, lastBrewTime);

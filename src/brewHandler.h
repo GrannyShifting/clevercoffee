@@ -50,6 +50,7 @@ double totalBrewTime = 0;        // total brewtime set in software
 double timeBrewed = 0;           // total brewed time
 double lastBrewTimeMillis = 0;   // for shottimer delay after disarmed button
 double lastBrewTime = 0;
+double firstDripTime = 0;
 unsigned long startingTime = 0;  // start time of brew
 boolean brewPIDDisabled = false; // is PID disabled for delay after brew has started?
 
@@ -62,6 +63,7 @@ float calibrationValue = SCALE_CALIBRATION_FACTOR; // use calibration example to
 float weight = 0;                                  // value from HX711
 float weightPreBrew = 0;                           // value of scale before wrew started
 float weightBrew = 0;                              // weight value of brew
+float lastWeightBrew = 0;                              // weight value of brew
 float scaleDelayValue = 2.5;                       // value in gramm that takes still flows onto the scale after brew is stopped
 bool scaleFailure = false;
 const unsigned long intervalWeight = 200;          // weight scale
@@ -316,6 +318,9 @@ void brew() {
         case kWaitPreinfusionPause: // waiting time preinfusion pause
             if (timeBrewed > ((preinfusion * 1000) + (preinfusionPause * 1000))) {
                 currBrewState = kBrewRunning;
+
+                // Restart the timer, do not include preinfusion in total time
+                startingTime = millis();
             }
 
             break;
@@ -332,6 +337,11 @@ void brew() {
 
         case kWaitBrew: // waiting time or weight brew
             lastBrewTime = timeBrewed;
+            lastWeightBrew = weightBrew;
+
+            if (weightBrew > 0.3 && firstDripTime == 0){
+                firstDripTime = timeBrewed;
+            }
             
             // stop brew if target-time is reached --> No stop if stop by time is deactivated via Parameter (0)
             if ((timeBrewed > totalBrewTime) && (brewTime > 0)) {
@@ -380,9 +390,11 @@ void brew() {
                 brewDetected = 0;          // rearm brewDetection
                 currBrewState = kBrewIdle;
                 lastBrewTime = timeBrewed; // store brewtime to show in Shottimer after brew is finished
+                lastWeightBrew = weightBrew;
                 timeBrewed = 0;
                 isBrewDetected = 0;
                 weightBrew = 0;
+                firstDripTime = 0;
             }
 
             break;
