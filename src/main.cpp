@@ -243,6 +243,8 @@ double brewTime = BREW_TIME;                       // brewtime in s
 double preinfusion = PRE_INFUSION_TIME;            // preinfusion time in s
 double preinfusionPause = PRE_INFUSION_PAUSE_TIME; // preinfusion pause time in s
 double weightSetpoint = SCALE_WEIGHTSETPOINT;
+double purgeWeight = PURGE_WEIGHT;
+double purgeTime = PURGE_TIME;
 uint8_t scheduler = 0;
 int scheduler_hour = SCHEDULER_HOUR;
 int scheduler_min = SCHEDULER_MIN;
@@ -304,6 +306,9 @@ SysPara<double> sysParaBackflushFlushTime(&backflushFlushTime, BACKFLUSH_FLUSH_T
 SysPara<uint8_t> sysParaScheduler(&scheduler, 0, 1, STO_ITEM_SCHEDULER);
 SysPara<int> sysParaSchedulerHour(&scheduler_hour, SCHEDULER_HOUR_MIN, SCHEDULER_HOUR_MAX, STO_ITEM_SCHEDULER_HOUR);
 SysPara<int> sysParaSchedulerMin(&scheduler_min, SCHEDULER_MIN_MIN, SCHEDULER_MIN_MAX, STO_ITEM_SCHEDULER_MIN);
+SysPara<double> sysParaPurgeWeight(&purgeWeight, PURGE_WEIGHT_MIN, PURGE_WEIGHT_MAX, STO_ITEM_PURGE_WEIGHT);
+SysPara<double> sysParaPurgeTime(&purgeTime, PURGE_TIME_MIN, PURGE_TIME_MAX, STO_ITEM_PURGE_TIME);
+
 
 
 // Other variables
@@ -333,7 +338,6 @@ unsigned long longPressMillis = 1000;
 bool currButtonState;
 bool buttonReleased = false;
 bool purging = false;
-#define BREW_PURGE_TIME_MS  10000
 
 double setpointTemp;
 double previousInput = 0;
@@ -1644,6 +1648,7 @@ void loopRotEnc () {
 
     if(!purging && startButtonPressMillis == 0 && currButtonState) {
         startButtonPressMillis = millis();
+        prePurgeWeight = weight;
     }
 
     if (startButtonPressMillis != 0 && (millis() - startButtonPressMillis) > longPressMillis){
@@ -1656,11 +1661,16 @@ void loopRotEnc () {
         startButtonPressMillis = 0;
     }
 
-    if (purging && (millis() - startPurgeMillis > BREW_PURGE_TIME_MS || (buttonReleased && currButtonState))){
+    if (purging && 
+        (millis() - startPurgeMillis > purgeTime*1000 || 
+        (buttonReleased && currButtonState) || 
+        (weight - prePurgeWeight >= purgeWeight)))
+    {
         pumpRelay.off();
         startPurgeMillis = 0;
         purging = false;
         buttonReleased = false;
+        prePurgeWeight = 0;
         return;
     }
 
@@ -1954,6 +1964,9 @@ int readSysParamsFromStorage(void) {
     if (sysParaScheduler.getStorage() != 0) return 33;
     if (sysParaSchedulerHour.getStorage() != 0) return 34;
     if (sysParaSchedulerMin.getStorage() != 0) return 35;
+    if (sysParaPurgeWeight.getStorage() != 0) return 36;
+    if (sysParaPurgeTime.getStorage() != 0) return 37;
+    
 
     return 0;
 }
@@ -1999,6 +2012,8 @@ int writeSysParamsToStorage(void) {
     if (sysParaScheduler.setStorage() != 0) return -1;
     if (sysParaSchedulerHour.setStorage() != 0) return -1;
     if (sysParaSchedulerMin.setStorage() != 0) return -1;
+    if (sysParaPurgeWeight.setStorage() != 0) return -1;
+    if (sysParaPurgeTime.setStorage() != 0) return -1;
 
     return storageCommit();
 }
@@ -2465,6 +2480,26 @@ void initWebVars(void){
                                     .minValue = SCHEDULER_MIN_MIN,
                                     .maxValue = SCHEDULER_MIN_MAX,
                                     .ptr = (void*)&scheduler_min};
+    editableVars["PURGE_TIME"] = {.displayName = F("Purge Time (s)"),
+                                    .hasHelpText = true,
+                                    .helpText = F("Time (s) to stop at when purging."),
+                                    .type = kDouble,
+                                    .section = sScaleSection,
+                                    .position = 40,
+                                    .show = [] { return true; },
+                                    .minValue = PURGE_TIME_MIN,
+                                    .maxValue = PURGE_TIME_MAX,
+                                    .ptr = (void*)&purgeTime};
+    editableVars["PURGE_WEIGHT"] = {.displayName = F("Purge Weight (g)"),
+                                    .hasHelpText = true,
+                                    .helpText = F("Grams to stop at when purging."),
+                                    .type = kDouble,
+                                    .section = sScaleSection,
+                                    .position = 41,
+                                    .show = [] { return true; },
+                                    .minValue = PURGE_WEIGHT_MIN,
+                                    .maxValue = PURGE_WEIGHT_MAX,
+                                    .ptr = (void*)&purgeWeight};
 }
 
 

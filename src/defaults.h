@@ -44,6 +44,8 @@ int writeSysParamsToStorage(void);
 #define PRE_INFUSION_TIME         0      // pre-infusion time in seconds
 #define PRE_INFUSION_PAUSE_TIME   0      // pre-infusion pause time in seconds
 #define SCALE_WEIGHTSETPOINT      35     // Target weight in grams
+#define PURGE_WEIGHT              25     // Stop purge when scale hits this weight
+#define PURGE_TIME                20     // Stop purge when time reached (seconds)
 #define WIFI_CREDENTIALS_SAVED    0      // Flag if wifi setup is done. 0: not set up, 1: credentials set up via wifi manager
 #define STANDBY_MODE_ON           1      // Standby mode on by default
 #define STANDBY_MODE_TIME         30     // Time in minutes until the heater is turned off
@@ -107,3 +109,7 @@ int writeSysParamsToStorage(void);
 #define SCHEDULER_HOUR_MAX       23
 #define SCHEDULER_MIN_MIN        0
 #define SCHEDULER_MIN_MAX        59
+#define PURGE_WEIGHT_MIN         0
+#define PURGE_WEIGHT_MAX         100
+#define PURGE_TIME_MIN           0
+#define PURGE_TIME_MAX           100

@@ -49,6 +49,8 @@ typedef enum {
     STO_ITEM_SCHEDULER,                 // Scheduler on/off state
     STO_ITEM_SCHEDULER_HOUR,            // Scheduler on hour
     STO_ITEM_SCHEDULER_MIN,             // Scheduler on minute
+    STO_ITEM_PURGE_WEIGHT,              // Purge weight
+    STO_ITEM_PURGE_TIME,                // Purge time
 
     /* WHEN ADDING NEW ITEMS, THE FOLLOWING HAS TO BE UPDATED:
      * - storage structure:  sto_data_t
@@ -122,6 +124,8 @@ typedef struct __attribute__((packed)) {
         uint8_t scheduler;
         int scheduler_hour;
         int scheduler_min;
+        double purgeWeight;
+        double purgeTime;
 
 } sto_data_t;
 
@@ -176,6 +180,8 @@ static const sto_data_t itemDefaults PROGMEM = {
     0,                                                                                                                              // STO_ITEM_SCHEDULER
     SCHEDULER_HOUR,                                                                                                                 // STO_ITEM_SCHEDULER_HOUR
     SCHEDULER_MIN,                                                                                                                  // STO_ITEM_SCHEDULER_MIN
+    PURGE_WEIGHT,                                                                                                                   // STO_ITEM_PURGE_WEIGHT
+    PURGE_TIME,                                                                                                                     // STO_ITEM_PURGE_TIME
 };
 
 /**
@@ -381,6 +387,16 @@ static inline int32_t getItemAddr(sto_item_id_t itemId, uint16_t* maxItemSize = 
         case STO_ITEM_SCHEDULER_MIN:
             addr = offsetof(sto_data_t, scheduler_min);
             size = STRUCT_MEMBER_SIZE(sto_data_t, scheduler_min);
+            break;
+
+        case STO_ITEM_PURGE_WEIGHT:
+            addr = offsetof(sto_data_t, purgeWeight);
+            size = STRUCT_MEMBER_SIZE(sto_data_t, purgeWeight);
+            break;
+
+        case STO_ITEM_PURGE_TIME:
+            addr = offsetof(sto_data_t, purgeTime);
+            size = STRUCT_MEMBER_SIZE(sto_data_t, purgeTime);
             break;
 
         default:
