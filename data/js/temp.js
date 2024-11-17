@@ -348,8 +348,9 @@ function makeHeaterChart(data) {
 function makeFlowRateChart(data) {
     const opts = {
         title: "Flow Rate History",
-        ...getSize(heaterDiv),
+        ...getSize(flowDiv),
         tzDate: ts => uPlot.tzDate(new Date(ts * 1e3), 'America/Los_Angeles'),
+        padding: [null, null, null, 10],
         scales: {
             " g/s": {
                 auto: false,
@@ -438,6 +439,9 @@ window.addEventListener("resize", e => {
     }
     if (uplotHeater !== null) {
         uplotHeater.setSize(getSize(heaterDiv));
+    }
+    if (uplotFlowRate !== null) {
+        uplotFlowRate.setSize(getSize(flowDiv));
     }
 });
 
