@@ -12,14 +12,18 @@ const updateInterval = 1000    // expected ms between updates (from event source
 var curTempVals = []
 var targetTempVals = []
 var heaterPowerVals = []
+var flowRateVals = []
 var tempDates = []
 var heaterDates = []
+var flowRateDates = []
 
 var chartDiv = 'chart-temperature'
 var heaterDiv = 'chart-heater'
+var flowDiv = 'chart-flow'
 
 let uplotTemp = null;
 let uplotHeater = null;
+let uplotFlowRate = null;
 
 function addTempData(jsonValue, isSingleValue=false) {
     // add new value(s) to global data arrays and return in a
@@ -129,6 +133,55 @@ function addHeaterData(jsonValue, isSingleValue=false) {
     for (let i = 0; i < heaterPowerVals.length; i++) {
         data[0][i] = heaterDates[i].getTime() / updateInterval 
         data[1][i] = heaterPowerVals[i]
+    }
+
+    return data
+}
+
+function addFlowRateData(jsonValue, isSingleValue=false) {
+    if (isSingleValue) {
+        const flowRateKey = "flowRate"
+
+        // add new value to data lists
+        var date = new Date()
+        flowRateDates.push(date)
+
+        var flowRate = jsonValue[flowRateKey]
+        flowRateVals.push(flowRate)
+    }
+    else {
+        const flowRateKey = "flowRates"
+
+        // set data lists to values from history json
+        var flowRate = jsonValue[flowRateKey]
+        flowRateVals.length = 0
+        flowRateVals.push(...flowRate)
+        
+        // create dates for all history values (3 seconds between each value)
+        flowRateDates.length = 0
+        
+        for (let i=flowRateVals.length; i>0; i--) {
+            var date = new Date()
+            date.setSeconds(date.getSeconds()-3*i)
+            flowRateDates.push(date)
+        }
+    }
+
+    // reduce data if we have too many values (sliding window after that amount)
+    if (flowRateDates.length > maxValues) {
+        flowRateDates.splice(0, flowRateDates.length - maxValues)
+        flowRateVals.splice(0, flowRateVals.length - maxValues)
+    }
+
+    // use data lists to create data array for uPlot
+    let data = [
+        Array(flowRateDates.length),
+        Array(flowRateVals.length),
+    ];
+
+    for (let i = 0; i < flowRateVals.length; i++) {
+        data[0][i] = flowRateDates[i].getTime() / updateInterval 
+        data[1][i] = flowRateVals[i]
     }
 
     return data
@@ -292,6 +345,50 @@ function makeHeaterChart(data) {
     uplotHeater = new uPlot(opts, sliceData(data, 0, data.length), document.getElementById(heaterDiv));
 }
 
+function makeFlowRateChart(data) {
+    const opts = {
+        title: "Flow Rate History",
+        ...getSize(heaterDiv),
+        tzDate: ts => uPlot.tzDate(new Date(ts * 1e3), 'America/Los_Angeles'),
+        scales: {
+            " g/s": {
+                auto: false,
+                range: [0, 5],
+            }
+        },
+        series: [
+            {
+                value: "{YYYY}-{MM}-{DD} {h}:{mm}:{ss} {AA}"
+            },
+            {
+                label: "Flow Rate",
+                scale: " g/s",
+                value: (u, v) => v == null ? null : v.toFixed(1) + " g/s",
+                stroke: "#778899",
+                fill: "#77889910",
+                width: 2,
+                show: true,
+                points: { show: false },
+                drawStyle: drawStyles.line,
+                lineInterpolation: lineInterpolations.spline,
+                paths: pathRenderer,
+            }
+        ],
+        axes: [
+            {
+                values: (u, vals, space) => vals.map(v => uPlot.tzDate(new Date(v * 1e3), 'America/Los_Angeles').toLocaleString("en-US", tzdateOptions)),
+            },
+            {
+                side: 3,
+                scale: " g/s",
+                values: (u, vals, space) => vals.map(v => +v.toFixed(1) + " g/s"),
+            },
+        ],
+    };
+    
+    uplotFlowRate = new uPlot(opts, sliceData(data, 0, data.length), document.getElementById(flowDiv));
+}
+
 // append single historic values
 function addPlotData(jsonValue) {    
     function addData(data, u) {
@@ -319,6 +416,11 @@ function addPlotData(jsonValue) {
     let heaterData = addHeaterData(jsonValue, true);
     if (uplotHeater !== null) {
         addData(heaterData, uplotHeater)
+    }
+
+    let flowRateData = addFlowRateData(jsonValue, true);
+    if (uplotFlowRate !== null) {
+        addData(flowRateData, uplotFlowRate)
     }
 }
 
@@ -349,9 +451,11 @@ function getTimeseries() {
             var tempHistory = JSON.parse(xhr.responseText)
             let tempData = addTempData(tempHistory);
             let heaterData = addHeaterData(tempHistory);
+            let flowRateData = addFlowRateData(tempHistory);
             setTimeout(() => {
                 makeTempChart(tempData);
                 makeHeaterChart(heaterData);
+                makeFlowRateChart(flowRateData);
             }, 0);
         }
     }

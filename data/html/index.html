@@ -161,6 +161,19 @@
                     <div id="chart-heater"></div>
                 </div>
             </div>
+            <div class="card card-accent-dark mb-5 shadow-sm rounded">
+                <div class="card-body bg-light pb-1 rounded">
+                    <h5 class="card-title">
+                        Flow Rate
+                        <a href="#" role="button" data-bs-toggle="popover" data-bs-html="true" data-bs-original-title="History of the controlled flow rate. Drag to zoom, double-click to reset zoom again.">
+                            <span class="fa-solid fa-question-circle"></span>
+                        </a>
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div id="chart-flow"></div>
+                </div>
+            </div>
             <script>
                 if (window.appCreated == true) {
                     import('/js/temp.js?v=1')

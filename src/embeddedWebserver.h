@@ -47,10 +47,11 @@ AsyncEventSource events("/events");
 double curTemp = 0.0;
 double tTemp = 0.0;
 double hPower = 0.0;
+double fRate = 0.0;
 
 #define HISTORY_LENGTH 600 // 30 mins of values (20 vals/min * 60 min) = 600 (7,2kb)
 
-static float tempHistory[3][HISTORY_LENGTH] = {0};
+static float tempHistory[4][HISTORY_LENGTH] = {0};
 int historyCurrentIndex = 0;
 int historyValueCount = 0;
 
@@ -78,6 +79,7 @@ String getTempString() {
     doc["currentTemp"] = curTemp;
     doc["targetTemp"] = tTemp;
     doc["heaterPower"] = hPower;
+    doc["flowRate"] = fRate;
 
     String jsonTemps;
     serializeJson(doc, jsonTemps);
@@ -451,12 +453,13 @@ void serverSetup() {
         AsyncResponseStream* response = request->beginResponseStream("application/json");
 
         // set capacity of json doc for history structure
-        DynamicJsonDocument doc(JSON_ARRAY_SIZE(2) + JSON_OBJECT_SIZE(3) + JSON_OBJECT_SIZE(HISTORY_LENGTH) * 3);
+        DynamicJsonDocument doc(JSON_ARRAY_SIZE(2) + JSON_OBJECT_SIZE(4) + JSON_OBJECT_SIZE(HISTORY_LENGTH) * 4);
 
         // for each value in mem history array, add json array element
         JsonArray currentTemps = doc.createNestedArray("currentTemps");
         JsonArray targetTemps = doc.createNestedArray("targetTemps");
         JsonArray heaterPowers = doc.createNestedArray("heaterPowers");
+        JsonArray flowRates = doc.createNestedArray("flowRates");
 
         // go through history values backwards starting from currentIndex and
         // wrap around beginning to include valueCount many values
@@ -464,6 +467,7 @@ void serverSetup() {
             currentTemps.add(round2(tempHistory[0][i]));
             targetTemps.add(round2(tempHistory[1][i]));
             heaterPowers.add(round2(tempHistory[2][i]));
+            flowRates.add(round2(tempHistory[3][i]));
         }
 
         serializeJson(doc, *response);
@@ -501,10 +505,11 @@ void serverSetup() {
 int skippedValues = 0;
 #define SECONDS_TO_SKIP 2
 
-void sendTempEvent(double currentTemp, double targetTemp, double heaterPower) {
+void sendTempEvent(double currentTemp, double targetTemp, double heaterPower, double flowRate) {
     curTemp = currentTemp;
     tTemp = targetTemp;
     hPower = heaterPower;
+    fRate = flowRate;
 
     // save all values in memory to show history
     if (skippedValues > 0 && skippedValues % SECONDS_TO_SKIP == 0) {
@@ -514,6 +519,7 @@ void sendTempEvent(double currentTemp, double targetTemp, double heaterPower) {
         tempHistory[0][historyCurrentIndex] = (float)currentTemp;
         tempHistory[1][historyCurrentIndex] = (float)targetTemp;
         tempHistory[2][historyCurrentIndex] = (float)heaterPower;
+        tempHistory[3][historyCurrentIndex] = (float)flowRate;
         historyCurrentIndex = (historyCurrentIndex + 1) % HISTORY_LENGTH;
         historyValueCount = min(HISTORY_LENGTH - 1, historyValueCount + 1);
         skippedValues = 0;

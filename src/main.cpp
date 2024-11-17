@@ -317,6 +317,7 @@ const double EmergencyStopTemp = 145;         // Temp EmergencyStopTemp
 float inX = 0, inY = 0, inOld = 0, inSum = 0; // used for filterPressureValue()
 boolean brewDetected = 0;
 boolean setupDone = false;
+double flowRate = 0.0;
 
 // Water sensor
 boolean waterFull = true;
@@ -395,7 +396,7 @@ std::map<const char*, std::function<editable_t*()>, cmp_str> mqttVars = {};
 std::map<const char*, std::function<double()>, cmp_str> mqttSensors = {};
 
 unsigned long lastTempEvent = 0;
-unsigned long tempEventInterval = 1000;
+unsigned long tempEventInterval = 500;
 
 #if MQTT_HASSIO_SUPPORT == 1
 Timer hassioDiscoveryTimer(&sendHASSIODiscoveryMsg, 300000);
@@ -1476,8 +1477,14 @@ void looppid() {
     bPID.Compute();      // the variable pidOutput now has new values from PID (will be written to heater pin in ISR.cpp)
 
     if ((millis() - lastTempEvent) > tempEventInterval) {
+        double flowRate = 0.0;
+        if (machineState == kBrew || brewSwitchState == kBrewSwitchFlushOff)
+            flowRate = weightBrew/((timeBrewed-firstDripTime) / 1000);
+        if (machineState == kShotTimerAfterBrew && brewSwitchState != kBrewSwitchFlushOff)
+            flowRate = lastWeightBrew/((lastBrewTime-firstDripTime) / 1000);
+
         // send temperatures to website endpoint
-        sendTempEvent(temperature, brewSetpoint, pidOutput / 10); // pidOutput is promill, so /10 to get percent value
+        sendTempEvent(temperature, brewSetpoint, pidOutput / 10, flowRate); // pidOutput is promill, so /10 to get percent value
         lastTempEvent = millis();
 
         if (pidON) {
