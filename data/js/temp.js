@@ -354,7 +354,7 @@ function makeFlowRateChart(data) {
         scales: {
             " g/s": {
                 auto: false,
-                range: [0, 5],
+                range: [0, 2.5],
             }
         },
         series: [

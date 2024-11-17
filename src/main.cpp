@@ -1480,8 +1480,6 @@ void looppid() {
         double flowRate = 0.0;
         if (machineState == kBrew || brewSwitchState == kBrewSwitchFlushOff)
             flowRate = weightBrew/((timeBrewed-firstDripTime) / 1000);
-        if (machineState == kShotTimerAfterBrew && brewSwitchState != kBrewSwitchFlushOff)
-            flowRate = lastWeightBrew/((lastBrewTime-firstDripTime) / 1000);
 
         // send temperatures to website endpoint
         sendTempEvent(temperature, brewSetpoint, pidOutput / 10, flowRate); // pidOutput is promill, so /10 to get percent value
