@@ -1777,20 +1777,20 @@ void loopRotEnc () {
         if (inMenu == 2) {
             switch(currMenuItem) {
                 case (MENU_WEIGHT):
-                    if (weightSetpoint + 1.0 <= WEIGHTSETPOINT_MAX)
-                        weightSetpoint += 1.0;
+                    if (weightSetpoint + 0.5 <= WEIGHTSETPOINT_MAX)
+                        weightSetpoint += 0.5;
                     break;
                 case (MENU_TEMP):
-                    if (brewSetpoint + 1.0 <= BREW_SETPOINT_MAX)
-                        brewSetpoint += 1.0;
+                    if (brewSetpoint + 0.5 <= BREW_SETPOINT_MAX)
+                        brewSetpoint += 0.5;
                     break;
                 case (MENU_PID):
                     pidON = 1;
                     restartStandbyTime();
                     break;
                 case (MENU_STEAM):
-                    if (steamSetpoint + 1.0 <= STEAM_SETPOINT_MAX)            
-                        steamSetpoint += 1.0;
+                    if (steamSetpoint + 0.5 <= STEAM_SETPOINT_MAX)            
+                        steamSetpoint += 0.5;
                     break;
             }
             return;
@@ -1805,19 +1805,19 @@ void loopRotEnc () {
         if (inMenu == 2) {
             switch(currMenuItem) {
                 case (MENU_WEIGHT):
-                    if (weightSetpoint - 1.0 >= WEIGHTSETPOINT_MIN)
-                        weightSetpoint -= 1.0;
+                    if (weightSetpoint - 0.5 >= WEIGHTSETPOINT_MIN)
+                        weightSetpoint -= 0.5;
                     break;
                 case (MENU_TEMP):
-                    if (brewSetpoint - 1.0 >= BREW_SETPOINT_MIN)
-                        brewSetpoint -= 1.0;
+                    if (brewSetpoint - 0.5 >= BREW_SETPOINT_MIN)
+                        brewSetpoint -= 0.5;
                     break;
                 case (MENU_PID):
                     pidON = 0;
                     break;
                 case (MENU_STEAM):
-                    if (steamSetpoint - 1.0 >= STEAM_SETPOINT_MIN)            
-                        steamSetpoint -= 1.0;
+                    if (steamSetpoint - 0.5 >= STEAM_SETPOINT_MIN)            
+                        steamSetpoint -= 0.5;
                     break;
             }
         }
