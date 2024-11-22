@@ -49,7 +49,7 @@ double tTemp = 0.0;
 double hPower = 0.0;
 double fRate = 0.0;
 
-#define HISTORY_LENGTH 600 // 30 mins of values (20 vals/min * 60 min) = 600 (7,2kb)
+#define HISTORY_LENGTH 960 // 8 mins of values (120 vals/min * 8 min) = 960 (15kB)
 
 static float tempHistory[4][HISTORY_LENGTH] = {0};
 int historyCurrentIndex = 0;
