@@ -51,6 +51,7 @@ typedef enum {
     STO_ITEM_SCHEDULER_MIN,             // Scheduler on minute
     STO_ITEM_PURGE_WEIGHT,              // Purge weight
     STO_ITEM_PURGE_TIME,                // Purge time
+    STO_ITEM_DESCALE_GRAMS,             // Descale grams
 
     /* WHEN ADDING NEW ITEMS, THE FOLLOWING HAS TO BE UPDATED:
      * - storage structure:  sto_data_t
@@ -126,6 +127,7 @@ typedef struct __attribute__((packed)) {
         int scheduler_min;
         double purgeWeight;
         double purgeTime;
+        uint32_t gramsSinceDescale;
 
 } sto_data_t;
 
@@ -182,6 +184,7 @@ static const sto_data_t itemDefaults PROGMEM = {
     SCHEDULER_MIN,                                                                                                                  // STO_ITEM_SCHEDULER_MIN
     PURGE_WEIGHT,                                                                                                                   // STO_ITEM_PURGE_WEIGHT
     PURGE_TIME,                                                                                                                     // STO_ITEM_PURGE_TIME
+    GRAMS_TIL_DESCALE,                                                                                                              // STO_ITEM_DESCALE_GRAMS
 };
 
 /**
@@ -397,6 +400,11 @@ static inline int32_t getItemAddr(sto_item_id_t itemId, uint16_t* maxItemSize = 
         case STO_ITEM_PURGE_TIME:
             addr = offsetof(sto_data_t, purgeTime);
             size = STRUCT_MEMBER_SIZE(sto_data_t, purgeTime);
+            break;
+
+        case STO_ITEM_DESCALE_GRAMS:
+            addr = offsetof(sto_data_t, gramsSinceDescale);
+            size = STRUCT_MEMBER_SIZE(sto_data_t, gramsSinceDescale);
             break;
 
         default:

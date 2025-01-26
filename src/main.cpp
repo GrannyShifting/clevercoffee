@@ -115,6 +115,9 @@ const int brewDetectionMode = BREWDETECTION_TYPE;
 const int optocouplerType = OPTOCOUPLER_TYPE;
 const boolean ota = OTA;
 
+// Descale Tracker
+uint32_t gramsTilDescale = GRAMS_TIL_DESCALE;
+
 // Display
 uint8_t oled_i2c = OLED_I2C;
 
@@ -197,6 +200,7 @@ void setScaleTare(int tare);
 void setScaleCalibration(int tare);
 void setNormalPIDTunings();
 void setBDPIDTunings();
+void setGramsTilDescale(uint32_t descaleGrams);
 void loopcalibrate();
 void looppid();
 void loopLED();
@@ -308,6 +312,7 @@ SysPara<int> sysParaSchedulerHour(&scheduler_hour, SCHEDULER_HOUR_MIN, SCHEDULER
 SysPara<int> sysParaSchedulerMin(&scheduler_min, SCHEDULER_MIN_MIN, SCHEDULER_MIN_MAX, STO_ITEM_SCHEDULER_MIN);
 SysPara<double> sysParaPurgeWeight(&purgeWeight, PURGE_WEIGHT_MIN, PURGE_WEIGHT_MAX, STO_ITEM_PURGE_WEIGHT);
 SysPara<double> sysParaPurgeTime(&purgeTime, PURGE_TIME_MIN, PURGE_TIME_MAX, STO_ITEM_PURGE_TIME);
+SysPara<uint32_t> sysParaGramsSinceDescale(&gramsTilDescale, DESCALE_GRAMS_MIN, DESCALE_GRAMS_MAX, STO_ITEM_DESCALE_GRAMS);
 
 
 
@@ -1674,6 +1679,10 @@ void loopRotEnc () {
         pumpRelay.off();
         startPurgeMillis = 0;
         purging = false;
+        if ((gramsTilDescale - ((uint32_t)weight - (uint32_t)prePurgeWeight)) > 0)
+            setGramsTilDescale(gramsTilDescale - ((uint32_t)weight - (uint32_t)prePurgeWeight));
+        else
+            setGramsTilDescale(0);
         buttonReleased = false;
         prePurgeWeight = 0;
         return;
@@ -1928,6 +1937,13 @@ void setBDPIDTunings() {
     bPID.SetTunings(aggbKp, aggbKi, aggbKd, 1);
 }
 
+void setGramsTilDescale(uint32_t descaleGrams) {
+    gramsTilDescale = descaleGrams;
+    sysParaGramsSinceDescale.setStorage();
+    storageCommit();
+}
+
+
 /**
  * @brief Reads all system parameter values from non-volatile storage
  *
@@ -1971,6 +1987,7 @@ int readSysParamsFromStorage(void) {
     if (sysParaSchedulerMin.getStorage() != 0) return 35;
     if (sysParaPurgeWeight.getStorage() != 0) return 36;
     if (sysParaPurgeTime.getStorage() != 0) return 37;
+    if (sysParaGramsSinceDescale.getStorage() != 0) return 38;
     
 
     return 0;
@@ -2019,6 +2036,7 @@ int writeSysParamsToStorage(void) {
     if (sysParaSchedulerMin.setStorage() != 0) return -1;
     if (sysParaPurgeWeight.setStorage() != 0) return -1;
     if (sysParaPurgeTime.setStorage() != 0) return -1;
+    if (sysParaGramsSinceDescale.setStorage() != 0) return -1;
 
     return storageCommit();
 }
@@ -2505,6 +2523,16 @@ void initWebVars(void){
                                     .minValue = PURGE_WEIGHT_MIN,
                                     .maxValue = PURGE_WEIGHT_MAX,
                                     .ptr = (void*)&purgeWeight};
+    editableVars["GRAMS_TIL_DESCALE"] = {.displayName = F("Descale Grams (g)"),
+                                    .hasHelpText = true,
+                                    .helpText = F("Grams since descale was last run."),
+                                    .type = kInteger,
+                                    .section = sBrewSection,
+                                    .position = 42,
+                                    .show = [] { return true; },
+                                    .minValue = DESCALE_GRAMS_MIN,
+                                    .maxValue = DESCALE_GRAMS_MAX,
+                                    .ptr = (void*)&gramsTilDescale};                                    
 }
 
 

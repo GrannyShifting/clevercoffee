@@ -232,6 +232,7 @@ void backflush() {
                 currBackflushCycles = 0;
                 backflushState = kBackflushWaitBrewswitchOn;
                 backflushOn = 0;
+                setGramsTilDescale(GRAMS_TIL_DESCALE);
                 pidON = 0;
             }
 
@@ -373,6 +374,10 @@ void brew() {
                 inMenu = 0;
                 currMenuItem = 0; //menuList::MENU_EXIT
                 currBrewState = kWaitBrewOff;
+                if ((gramsTilDescale - (uint32_t)lastWeightBrew) > 0)
+                    setGramsTilDescale(gramsTilDescale - (uint32_t)lastWeightBrew);
+                else
+                    setGramsTilDescale(0);
             }
 
             break;
