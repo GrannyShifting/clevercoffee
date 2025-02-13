@@ -250,8 +250,10 @@ double weightSetpoint = SCALE_WEIGHTSETPOINT;
 double purgeWeight = PURGE_WEIGHT;
 double purgeTime = PURGE_TIME;
 uint8_t scheduler = 0;
-int scheduler_hour = SCHEDULER_HOUR;
-int scheduler_min = SCHEDULER_MIN;
+int scheduler_hour_m_f = SCHEDULER_HOUR;
+int scheduler_min_m_f = SCHEDULER_MIN;
+int scheduler_hour_sat = SCHEDULER_HOUR;
+int scheduler_min_sat = SCHEDULER_MIN;
 
 
 // PID - values for offline brew detection
@@ -308,8 +310,10 @@ SysPara<int> sysParaBackflushCycles(&backflushCycles, BACKFLUSH_CYCLES_MIN, BACK
 SysPara<double> sysParaBackflushFillTime(&backflushFillTime, BACKFLUSH_FILL_TIME_MIN, BACKFLUSH_FILL_TIME_MAX, STO_ITEM_BACKFLUSH_FILL_TIME);
 SysPara<double> sysParaBackflushFlushTime(&backflushFlushTime, BACKFLUSH_FLUSH_TIME_MIN, BACKFLUSH_FLUSH_TIME_MAX, STO_ITEM_BACKFLUSH_FLUSH_TIME);
 SysPara<uint8_t> sysParaScheduler(&scheduler, 0, 1, STO_ITEM_SCHEDULER);
-SysPara<int> sysParaSchedulerHour(&scheduler_hour, SCHEDULER_HOUR_MIN, SCHEDULER_HOUR_MAX, STO_ITEM_SCHEDULER_HOUR);
-SysPara<int> sysParaSchedulerMin(&scheduler_min, SCHEDULER_MIN_MIN, SCHEDULER_MIN_MAX, STO_ITEM_SCHEDULER_MIN);
+SysPara<int> sysParaSchedulerHourMF(&scheduler_hour_m_f, SCHEDULER_HOUR_MIN, SCHEDULER_HOUR_MAX, STO_ITEM_SCHEDULER_HOUR_M_F);
+SysPara<int> sysParaSchedulerMinMF(&scheduler_min_m_f, SCHEDULER_MIN_MIN, SCHEDULER_MIN_MAX, STO_ITEM_SCHEDULER_MIN_M_F);
+SysPara<int> sysParaSchedulerHourSat(&scheduler_hour_sat, SCHEDULER_HOUR_MIN, SCHEDULER_HOUR_MAX, STO_ITEM_SCHEDULER_HOUR_SAT);
+SysPara<int> sysParaSchedulerMinSat(&scheduler_min_sat, SCHEDULER_MIN_MIN, SCHEDULER_MIN_MAX, STO_ITEM_SCHEDULER_MIN_SAT);
 SysPara<double> sysParaPurgeWeight(&purgeWeight, PURGE_WEIGHT_MIN, PURGE_WEIGHT_MAX, STO_ITEM_PURGE_WEIGHT);
 SysPara<double> sysParaPurgeTime(&purgeTime, PURGE_TIME_MIN, PURGE_TIME_MAX, STO_ITEM_PURGE_TIME);
 SysPara<uint32_t> sysParaGramsSinceDescale(&gramsTilDescale, DESCALE_GRAMS_MIN, DESCALE_GRAMS_MAX, STO_ITEM_DESCALE_GRAMS);
@@ -1469,7 +1473,8 @@ void looppid() {
         }
         else{
             // Monday - Friday
-            if ( 1<=timeinfo.tm_wday && timeinfo.tm_wday <= 5 && timeinfo.tm_hour == scheduler_hour && timeinfo.tm_min == scheduler_min) {
+            if ( (1<=timeinfo.tm_wday && timeinfo.tm_wday <= 5 && timeinfo.tm_hour == scheduler_hour_m_f && timeinfo.tm_min == scheduler_min_m_f) ||
+                 (timeinfo.tm_wday == 6 && timeinfo.tm_hour == scheduler_hour_sat && timeinfo.tm_min == scheduler_min_sat) ) {
                 pidON = 1;
                 restartStandbyTime();
                 LOGF(INFO, "Turning on PID per scheduled time");
@@ -1983,11 +1988,13 @@ int readSysParamsFromStorage(void) {
     if (sysParaBackflushFillTime.getStorage() != 0) return 31;
     if (sysParaBackflushFlushTime.getStorage() != 0) return 32;
     if (sysParaScheduler.getStorage() != 0) return 33;
-    if (sysParaSchedulerHour.getStorage() != 0) return 34;
-    if (sysParaSchedulerMin.getStorage() != 0) return 35;
+    if (sysParaSchedulerHourMF.getStorage() != 0) return 34;
+    if (sysParaSchedulerMinMF.getStorage() != 0) return 35;
     if (sysParaPurgeWeight.getStorage() != 0) return 36;
     if (sysParaPurgeTime.getStorage() != 0) return 37;
     if (sysParaGramsSinceDescale.getStorage() != 0) return 38;
+    if (sysParaSchedulerHourSat.getStorage() != 0) return 39;
+    if (sysParaSchedulerMinSat.getStorage() != 0) return 40;
     
 
     return 0;
@@ -2032,8 +2039,10 @@ int writeSysParamsToStorage(void) {
     if (sysParaBackflushFillTime.setStorage() != 0) return -1;
     if (sysParaBackflushFlushTime.setStorage() != 0) return -1;
     if (sysParaScheduler.setStorage() != 0) return -1;
-    if (sysParaSchedulerHour.setStorage() != 0) return -1;
-    if (sysParaSchedulerMin.setStorage() != 0) return -1;
+    if (sysParaSchedulerHourMF.setStorage() != 0) return -1;
+    if (sysParaSchedulerMinMF.setStorage() != 0) return -1;
+    if (sysParaSchedulerHourSat.setStorage() != 0) return -1;
+    if (sysParaSchedulerMinSat.setStorage() != 0) return -1;
     if (sysParaPurgeWeight.setStorage() != 0) return -1;
     if (sysParaPurgeTime.setStorage() != 0) return -1;
     if (sysParaGramsSinceDescale.setStorage() != 0) return -1;
@@ -2482,7 +2491,7 @@ void initWebVars(void){
                                     .maxValue = 1,
                                     .ptr = (void*)&scheduler};
 
-    editableVars["SCHEDULER_HOUR"] = {.displayName = F("Scheduler Hour"),
+    editableVars["SCHEDULER_HOUR_M_F"] = {.displayName = F("Scheduler Hour (M-F)"),
                                     .hasHelpText = true,
                                     .helpText = F("Scheduled hour to turn on PID."),
                                     .type = kInteger,
@@ -2491,9 +2500,9 @@ void initWebVars(void){
                                     .show = [] { return true && scheduler; },
                                     .minValue = SCHEDULER_HOUR_MIN,
                                     .maxValue = SCHEDULER_HOUR_MAX,
-                                    .ptr = (void*)&scheduler_hour};
+                                    .ptr = (void*)&scheduler_hour_m_f};
 
-    editableVars["SCHEDULER_MIN"] = {.displayName = F("Scheduler Minute"),
+    editableVars["SCHEDULER_MIN_M_F"] = {.displayName = F("Scheduler Minute (M-F)"),
                                     .hasHelpText = true,
                                     .helpText = F("Scheduled minute to turn on PID."),
                                     .type = kInteger,
@@ -2502,7 +2511,8 @@ void initWebVars(void){
                                     .show = [] { return true && scheduler; },
                                     .minValue = SCHEDULER_MIN_MIN,
                                     .maxValue = SCHEDULER_MIN_MAX,
-                                    .ptr = (void*)&scheduler_min};
+                                    .ptr = (void*)&scheduler_min_m_f};
+
     editableVars["PURGE_TIME"] = {.displayName = F("Purge Time (s)"),
                                     .hasHelpText = true,
                                     .helpText = F("Time (s) to stop at when purging."),
@@ -2532,7 +2542,27 @@ void initWebVars(void){
                                     .show = [] { return true; },
                                     .minValue = DESCALE_GRAMS_MIN,
                                     .maxValue = DESCALE_GRAMS_MAX,
-                                    .ptr = (void*)&gramsTilDescale};                                    
+                                    .ptr = (void*)&gramsTilDescale};    
+    editableVars["SCHEDULER_HOUR_SAT"] = {.displayName = F("Scheduler Hour (Sat)"),
+                                    .hasHelpText = true,
+                                    .helpText = F("Scheduled hour to turn on PID."),
+                                    .type = kInteger,
+                                    .section = sPowerSection,
+                                    .position = 43,
+                                    .show = [] { return true && scheduler; },
+                                    .minValue = SCHEDULER_HOUR_MIN,
+                                    .maxValue = SCHEDULER_HOUR_MAX,
+                                    .ptr = (void*)&scheduler_hour_sat};
+    editableVars["SCHEDULER_MIN_SAT"] = {.displayName = F("Scheduler Minute (Sat)"),
+                                    .hasHelpText = true,
+                                    .helpText = F("Scheduled minute to turn on PID."),
+                                    .type = kInteger,
+                                    .section = sPowerSection,
+                                    .position = 44,
+                                    .show = [] { return true && scheduler; },
+                                    .minValue = SCHEDULER_MIN_MIN,
+                                    .maxValue = SCHEDULER_MIN_MAX,
+                                    .ptr = (void*)&scheduler_min_sat};                                
 }
 
 
@@ -2558,8 +2588,10 @@ void initMQTT(void){
     mqttVars["steamKp"] = [] { return &editableVars.at("STEAM_KP"); };
     mqttVars["standbyModeOn"] = [] { return &editableVars.at("STANDBY_MODE_ON"); };
     mqttVars["scheduler"] = [] { return &editableVars.at("SCHEDULER_ON"); };
-    mqttVars["scheduler_hour"] = [] { return &editableVars.at("SCHEDULER_HOUR"); };
-    mqttVars["scheduler_min"] = [] { return &editableVars.at("SCHEDULER_MIN"); };
+    mqttVars["scheduler_hour_m_f"] = [] { return &editableVars.at("SCHEDULER_HOUR_M_F"); };
+    mqttVars["scheduler_min_m_f"] = [] { return &editableVars.at("SCHEDULER_MIN_M_F"); };
+    mqttVars["scheduler_hour_sat"] = [] { return &editableVars.at("SCHEDULER_HOUR_SAT"); };
+    mqttVars["scheduler_min_sat"] = [] { return &editableVars.at("SCHEDULER_MIN_SAT"); };
 
     if (FEATURE_BREWCONTROL == 1) {
         mqttVars["brewtime"] = [] { return &editableVars.at("BREW_TIME"); };

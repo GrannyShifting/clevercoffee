@@ -47,8 +47,10 @@ typedef enum {
     STO_ITEM_BACKFLUSH_FILL_TIME,       // time in ms the pump is running during backflush
     STO_ITEM_BACKFLUSH_FLUSH_TIME,      // time in ms the 3-way valve is open during backflush
     STO_ITEM_SCHEDULER,                 // Scheduler on/off state
-    STO_ITEM_SCHEDULER_HOUR,            // Scheduler on hour
-    STO_ITEM_SCHEDULER_MIN,             // Scheduler on minute
+    STO_ITEM_SCHEDULER_HOUR_M_F,        // Scheduler on hour (M-F)
+    STO_ITEM_SCHEDULER_MIN_M_F,         // Scheduler on minute (M-F)
+    STO_ITEM_SCHEDULER_HOUR_SAT,        // Scheduler on hour (Sat)
+    STO_ITEM_SCHEDULER_MIN_SAT,         // Scheduler on minute (Sat)
     STO_ITEM_PURGE_WEIGHT,              // Purge weight
     STO_ITEM_PURGE_TIME,                // Purge time
     STO_ITEM_DESCALE_GRAMS,             // Descale grams
@@ -123,8 +125,10 @@ typedef struct __attribute__((packed)) {
         double backflushFillTimeMs;
         double backflushFlushTimeMs;
         uint8_t scheduler;
-        int scheduler_hour;
-        int scheduler_min;
+        int scheduler_hour_m_f;
+        int scheduler_min_m_f;
+        int scheduler_hour_sat;
+        int scheduler_min_sat;
         double purgeWeight;
         double purgeTime;
         uint32_t gramsSinceDescale;
@@ -180,8 +184,10 @@ static const sto_data_t itemDefaults PROGMEM = {
     BACKFLUSH_FILL_TIME,                                                                                                            // STO_ITEM_BACKFLUSH_FILLTIME
     BACKFLUSH_FLUSH_TIME,                                                                                                           // STO_ITEM_BACKFLUSH_FLUSHTIME
     0,                                                                                                                              // STO_ITEM_SCHEDULER
-    SCHEDULER_HOUR,                                                                                                                 // STO_ITEM_SCHEDULER_HOUR
-    SCHEDULER_MIN,                                                                                                                  // STO_ITEM_SCHEDULER_MIN
+    SCHEDULER_HOUR,                                                                                                                 // STO_ITEM_SCHEDULER_HOUR_M_F
+    SCHEDULER_MIN,                                                                                                                  // STO_ITEM_SCHEDULER_MIN_M_F
+    SCHEDULER_HOUR,                                                                                                                 // STO_ITEM_SCHEDULER_HOUR_SAT
+    SCHEDULER_MIN,                                                                                                                  // STO_ITEM_SCHEDULER_MIN_SAT
     PURGE_WEIGHT,                                                                                                                   // STO_ITEM_PURGE_WEIGHT
     PURGE_TIME,                                                                                                                     // STO_ITEM_PURGE_TIME
     GRAMS_TIL_DESCALE,                                                                                                              // STO_ITEM_DESCALE_GRAMS
@@ -382,16 +388,26 @@ static inline int32_t getItemAddr(sto_item_id_t itemId, uint16_t* maxItemSize = 
             size = STRUCT_MEMBER_SIZE(sto_data_t, scheduler);
             break;
 
-        case STO_ITEM_SCHEDULER_HOUR:
-            addr = offsetof(sto_data_t, scheduler_hour);
-            size = STRUCT_MEMBER_SIZE(sto_data_t, scheduler_hour);
+        case STO_ITEM_SCHEDULER_HOUR_M_F:
+            addr = offsetof(sto_data_t, scheduler_hour_m_f);
+            size = STRUCT_MEMBER_SIZE(sto_data_t, scheduler_hour_m_f);
             break;
 
-        case STO_ITEM_SCHEDULER_MIN:
-            addr = offsetof(sto_data_t, scheduler_min);
-            size = STRUCT_MEMBER_SIZE(sto_data_t, scheduler_min);
+        case STO_ITEM_SCHEDULER_MIN_M_F:
+            addr = offsetof(sto_data_t, scheduler_min_m_f);
+            size = STRUCT_MEMBER_SIZE(sto_data_t, scheduler_min_m_f);
             break;
 
+        case STO_ITEM_SCHEDULER_HOUR_SAT:
+            addr = offsetof(sto_data_t, scheduler_hour_sat);
+            size = STRUCT_MEMBER_SIZE(sto_data_t, scheduler_hour_sat);
+            break;
+
+        case STO_ITEM_SCHEDULER_MIN_SAT:
+            addr = offsetof(sto_data_t, scheduler_min_sat);
+            size = STRUCT_MEMBER_SIZE(sto_data_t, scheduler_min_sat);
+            break;
+            
         case STO_ITEM_PURGE_WEIGHT:
             addr = offsetof(sto_data_t, purgeWeight);
             size = STRUCT_MEMBER_SIZE(sto_data_t, purgeWeight);
