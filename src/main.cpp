@@ -1677,9 +1677,11 @@ void loopRotEnc () {
     }
 
     if (purging && 
-        (millis() - startPurgeMillis > purgeTime*1000 || 
+        (((millis() - startPurgeMillis > purgeTime*1000) && (purgeTime != 0.0)) || 
         (buttonReleased && currButtonState) || 
-        (weight - prePurgeWeight >= purgeWeight)))
+        ((weight - prePurgeWeight >= purgeWeight) && (purgeWeight != 0.0) )
+        )
+       )
     {
         pumpRelay.off();
         startPurgeMillis = 0;
@@ -2515,7 +2517,7 @@ void initWebVars(void){
 
     editableVars["PURGE_TIME"] = {.displayName = F("Purge Time (s)"),
                                     .hasHelpText = true,
-                                    .helpText = F("Time (s) to stop at when purging."),
+                                    .helpText = F("Time (s) to stop at when purging. Set to zero to disable."),
                                     .type = kDouble,
                                     .section = sScaleSection,
                                     .position = 40,
@@ -2525,7 +2527,7 @@ void initWebVars(void){
                                     .ptr = (void*)&purgeTime};
     editableVars["PURGE_WEIGHT"] = {.displayName = F("Purge Weight (g)"),
                                     .hasHelpText = true,
-                                    .helpText = F("Grams to stop at when purging."),
+                                    .helpText = F("Grams to stop at when purging. Set to zero to disable."),
                                     .type = kDouble,
                                     .section = sScaleSection,
                                     .position = 41,
