@@ -15,12 +15,16 @@ TempSensorMAX6675::TempSensorMAX6675(int THERM_PIN_SCK, int THERM_PIN_CS, int TH
 bool TempSensorMAX6675::sample_temperature(double& temperature) const {
     auto temp = (double)(max6675Sensor_->readCelsius());
 
-    if (temp < 0) {
-        LOG(WARNING, "Temperature below 0");
+    if (temp <= 0.0) {
+        LOG(WARNING, "Temperature 0 deg C or lower");
         return false;
     }
-    else if (temp >150) {
+    if (temp > 150) {
         LOG(WARNING, "Temperature too high");
+        return false;
+    }
+    if (temp == NAN) {
+        LOG(WARNING, "Temperature sensor not connected");
         return false;
     }
 

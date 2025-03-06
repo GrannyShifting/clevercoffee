@@ -1087,7 +1087,9 @@ void handleMachineState() {
             break;
 
         case kSensorError:
-            machineState = kSensorError;
+            if(!tempSensor->hasError()) {
+                machineState = kPidDisabled;
+            }
             break;
 
         case kEepromError:

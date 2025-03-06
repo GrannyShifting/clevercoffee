@@ -367,7 +367,14 @@ bool displayMachineState() {
     // Offline logo
     else if (FEATURE_PIDOFF_LOGO == 1 && machineState == kPidDisabled) {
         u8g2.clearBuffer();
-        u8g2.drawXBMP(38, 0, Off_Logo_width, Off_Logo_height, Off_Logo);
+        u8g2.drawXBMP(68, 0, Off_Logo_width, Off_Logo_height, Off_Logo);
+        u8g2.setCursor(0, 10);
+        u8g2.setFont(u8g2_font_fub17_tf);
+        u8g2.print(temperature, 1);
+        if (temperature >= 100.0)
+            u8g2.drawCircle(63, 13, 2);
+        else
+            u8g2.drawCircle(51, 13, 2);
         u8g2.setCursor(0, 55);
         u8g2.setFont(u8g2_font_profont10_tf);
         u8g2.print("PID is disabled manually");

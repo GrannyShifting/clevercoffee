@@ -97,7 +97,7 @@ class TempSensor {
         Timer update_temperature;
         double last_temperature_{};
         int bad_readings_{0};
-        int max_bad_treadings_{10};
+        int max_bad_treadings_{5};
         bool error_{false};
 
         /**
