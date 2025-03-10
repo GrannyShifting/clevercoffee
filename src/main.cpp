@@ -1732,9 +1732,16 @@ void loopRotEnc () {
                     break;
                 case (MENU_WEIGHT):
                 case (MENU_TEMP):
-                case (MENU_PID):
                 case (MENU_STEAM):
                     inMenu = 2;
+                    break;
+                case (MENU_PID):
+                    if (pidON == 0) {
+                        pidON = 1;
+                        restartStandbyTime();
+                    }
+                    else
+                        pidON = 0;
                     break;
                 default:
                     break;
@@ -1802,10 +1809,6 @@ void loopRotEnc () {
                     if (brewSetpoint + 0.5 <= BREW_SETPOINT_MAX)
                         brewSetpoint += 0.5;
                     break;
-                case (MENU_PID):
-                    pidON = 1;
-                    restartStandbyTime();
-                    break;
                 case (MENU_STEAM):
                     if (steamSetpoint + 0.5 <= STEAM_SETPOINT_MAX)            
                         steamSetpoint += 0.5;
@@ -1829,9 +1832,6 @@ void loopRotEnc () {
                 case (MENU_TEMP):
                     if (brewSetpoint - 0.5 >= BREW_SETPOINT_MIN)
                         brewSetpoint -= 0.5;
-                    break;
-                case (MENU_PID):
-                    pidON = 0;
                     break;
                 case (MENU_STEAM):
                     if (steamSetpoint - 0.5 >= STEAM_SETPOINT_MIN)            
