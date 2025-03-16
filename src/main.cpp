@@ -1732,7 +1732,6 @@ void loopRotEnc () {
                     break;
                 case (MENU_WEIGHT):
                 case (MENU_TEMP):
-                case (MENU_STEAM):
                     inMenu = 2;
                     break;
                 case (MENU_PID):
@@ -1742,6 +1741,14 @@ void loopRotEnc () {
                     }
                     else
                         pidON = 0;
+                    break;
+                case (MENU_STEAM):
+                    if (steamON == 0) {
+                        steamON = 1;
+                        restartStandbyTime();
+                    }
+                    else
+                        steamON = 0;
                     break;
                 default:
                     break;

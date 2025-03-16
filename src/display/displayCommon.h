@@ -540,9 +540,10 @@ void displayMenu() {
             u8g2.print("Off");
         
         u8g2.setCursor(66, 43);
-        sprintf(buff, "%.1f",steamSetpoint);
-        u8g2.print(buff);
-        u8g2.print('C');
+        if(steamON)
+            u8g2.print("On");
+        else
+            u8g2.print("Off");
         
     }
 
