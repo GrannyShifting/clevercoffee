@@ -1,6 +1,3 @@
-# ignore actual user config
-src/userConfig.h
-
 # ignore PlatformIO build folder
 .pio/*
 
