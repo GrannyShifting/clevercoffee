@@ -351,7 +351,7 @@ void brew() {
             }
 #if (FEATURE_SCALE == 1)
             // stop brew if target-weight is reached --> No stop if stop by weight is deactivated via Parameter (0)
-            else if (((FEATURE_SCALE == 1) && (weightBrew > weightSetpoint)) && (weightSetpoint > 0)) {
+            else if ((weightBrew > weightSetpoint) && (weightSetpoint > 0)) {
                 currBrewState = kBrewFinished;
             }
 #endif
