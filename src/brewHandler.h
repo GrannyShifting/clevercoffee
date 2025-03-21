@@ -276,7 +276,7 @@ void brew() {
         case kBrewIdle: // waiting step for brew switch turning on. Scale is tared before brewing is started.
             if (currStateBrewSwitch == HIGH && backflushState == kBackflushWaitBrewswitchOn && backflushOn == 0 && brewSwitchWasOff && machineState != kWaterEmpty) {
                 startingTime = millis();
-
+                weightPreBrew = weight;
                 if (preinfusionPause == 0 || preinfusion == 0) {
                     currBrewState = kBrewRunning;
                 }
