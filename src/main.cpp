@@ -2574,7 +2574,7 @@ void initWebVars(void){
                                     .minValue = SCHEDULER_MIN_MIN,
                                     .maxValue = SCHEDULER_MIN_MAX,
                                     .ptr = (void*)&scheduler_min_sat};                                
-}
+} // if adding a variable here, must increment 'EDITABLE_VARS_LEN'
 
 
 
