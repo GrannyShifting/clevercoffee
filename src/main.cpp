@@ -944,7 +944,8 @@ void handleMachineState() {
 
         case kSteam:
             if (steamON == 0) {
-                machineState = kPidNormal;
+                pidON = 0;
+                machineState = kPidDisabled;
             }
 
             if (emergencyStop) {
@@ -1476,7 +1477,8 @@ void looppid() {
         else{
             // Monday - Friday
             if ( (1<=timeinfo.tm_wday && timeinfo.tm_wday <= 5 && timeinfo.tm_hour == scheduler_hour_m_f && timeinfo.tm_min == scheduler_min_m_f) ||
-                 (timeinfo.tm_wday == 6 && timeinfo.tm_hour == scheduler_hour_sat && timeinfo.tm_min == scheduler_min_sat) ) {
+                 (timeinfo.tm_wday == 6 && timeinfo.tm_hour == scheduler_hour_sat && timeinfo.tm_min == scheduler_min_sat && !(scheduler_hour_sat == 0 && scheduler_min_sat == 0) ) 
+               ) {
                 pidON = 1;
                 restartStandbyTime();
                 LOGF(INFO, "Turning on PID per scheduled time");
@@ -2556,7 +2558,7 @@ void initWebVars(void){
                                     .ptr = (void*)&gramsTilDescale};    
     editableVars["SCHEDULER_HOUR_SAT"] = {.displayName = F("Scheduler Hour (Sat)"),
                                     .hasHelpText = true,
-                                    .helpText = F("Scheduled hour to turn on PID."),
+                                    .helpText = F("Scheduled hour to turn on PID. Set to 0 to disable."),
                                     .type = kInteger,
                                     .section = sPowerSection,
                                     .position = 43,
@@ -2566,7 +2568,7 @@ void initWebVars(void){
                                     .ptr = (void*)&scheduler_hour_sat};
     editableVars["SCHEDULER_MIN_SAT"] = {.displayName = F("Scheduler Minute (Sat)"),
                                     .hasHelpText = true,
-                                    .helpText = F("Scheduled minute to turn on PID."),
+                                    .helpText = F("Scheduled minute to turn on PID. Set to 0 to disable."),
                                     .type = kInteger,
                                     .section = sPowerSection,
                                     .position = 44,

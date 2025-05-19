@@ -26,7 +26,7 @@ String menu[] = {
     "Brew/Purge",
     "Yield",
     "Temp",
-    "PID",
+    "Heater",
     "Steam"
 };
 
@@ -533,13 +533,13 @@ void displayMenu() {
         u8g2.print(buff);
         u8g2.print('C');
         
-        u8g2.setCursor(66, 23);
+        u8g2.setCursor(84, 23);
         if(pidON)
             u8g2.print("On");
         else
             u8g2.print("Off");
         
-        u8g2.setCursor(66, 43);
+        u8g2.setCursor(84, 43);
         if(steamON)
             u8g2.print("On");
         else
