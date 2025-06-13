@@ -42,6 +42,12 @@ class TempSensor {
             return average_temp_rate_;
         }
 
+        double getAverageTemperature() {
+            // Trigger the timer to update the temperature:
+            update_temperature();
+            return average_temp_;
+        }
+
         /**
          * @brief Default destructor
          */
@@ -130,6 +136,9 @@ class TempSensor {
             double totalTempChangeRateSum = std::accumulate(std::begin(tempChangeRates), std::end(tempChangeRates), 0, std::plus<double>());
             average_temp_rate_ = totalTempChangeRateSum / numValues * 100;
 
+            double temp_sum = std::accumulate(std::begin(tempValues), std::end(tempValues), 0, std::plus<double>());
+            average_temp_ = temp_sum/numValues;
+
             if (valueIndex >= numValues - 1) {
                 // ...wrap around to the beginning:
                 valueIndex = 0;
@@ -140,6 +149,7 @@ class TempSensor {
         }
 
         // Moving average:
+        double average_temp_{};
         double average_temp_rate_{};
         constexpr static size_t numValues = 15;
         std::array<double, numValues> tempValues{};        // array of temp values

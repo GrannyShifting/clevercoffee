@@ -1462,7 +1462,7 @@ void looppid() {
     }
 
     // Update the temperature:
-    temperature = tempSensor->getCurrentTemperature();
+    temperature = tempSensor->getAverageTemperature();
 
     if (machineState != kSteam) {
         temperature -= brewTempOffset;
