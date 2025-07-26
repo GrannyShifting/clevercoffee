@@ -1712,14 +1712,17 @@ void loopRotEnc () {
             return;
         }
         restartDisplayTime();
+        restartExitMenuTime();
         
-        if((inMenu == 0) && backflushOn){
-            brewSwitch->setState(HIGH);
-            return;
-        }
-
-        if((inMenu == 0) && (currBrewState == kBrewIdle)){
-            inMenu = 1;
+        if(inMenu == 0){
+            if (steamON) {
+                steamON = 0;
+                return;
+            }
+            if(backflushOn)
+                brewSwitch->setState(HIGH);
+            if (currBrewState == kBrewIdle)
+                inMenu = 1;
             return;
         }
 
@@ -1801,6 +1804,7 @@ void loopRotEnc () {
             return;
         }
         restartDisplayTime();
+        restartExitMenuTime();
     }
 
     if (!purging && encoderVal > 0) {

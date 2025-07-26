@@ -8,9 +8,11 @@
 
 #define TIME_TO_DISPLAY_OFF 60000000    // 1 min
 #define TIME_TO_STANDBY     1800000000  // 30 mins
+#define TIME_TO_EXIT_MENU   10000000    // 10 seconds
 uint8_t displayAwake = 1;
 hw_timer_t* timerDisplay = NULL;
 hw_timer_t* timerStandby = NULL;
+hw_timer_t* timerExitMenu = NULL;
 
 void sleepDisplay()
 {
@@ -21,6 +23,12 @@ void sleepDisplay()
 void sleepPID()
 {
     pidON = 0;
+    steamON = 0;
+}
+
+void exitMenu()
+{
+    inMenu = 0;
 }
 
 void initStandbyDisplayTimers()
@@ -28,16 +36,20 @@ void initStandbyDisplayTimers()
     //ESP32 runs at 80MHz. Divider is 80, so each tick is 1us
     timerDisplay = timerBegin(1, 80, true); 
     timerStandby = timerBegin(2, 80, true);
+    timerExitMenu = timerBegin(3, 80, true);
     timerAttachInterrupt(timerDisplay, &sleepDisplay, true);
     timerAttachInterrupt(timerStandby, &sleepPID, true);
+    timerAttachInterrupt(timerExitMenu, &exitMenu, true);
     timerAlarmWrite(timerDisplay, TIME_TO_DISPLAY_OFF, true); //set time in us, 60s
     timerAlarmWrite(timerStandby, TIME_TO_STANDBY, true); //set time in us, 30mins
+    timerAlarmWrite(timerExitMenu, TIME_TO_EXIT_MENU, true); //set time in us, 10secs
 }
 
 void enableStandyDisplayTimer()
 {
     timerAlarmEnable(timerDisplay);
     timerAlarmEnable(timerStandby);
+    timerAlarmEnable(timerExitMenu);
 }
 
 void restartDisplayTime()
@@ -51,4 +63,10 @@ void restartStandbyTime()
 {
     LOG(INFO, "restarting standby timer");
     timerRestart(timerStandby);
+}
+
+void restartExitMenuTime()
+{
+    LOG(INFO, "restarting exit menu timer");
+    timerRestart(timerExitMenu);
 }

@@ -364,7 +364,7 @@ void brew() {
             valveRelay.off();
 #endif
             
-            pidON = 0;
+            steamON = 1;
             isBrewDetected = 0;
 
             pumpRelay.off();
