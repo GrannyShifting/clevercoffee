@@ -1712,7 +1712,6 @@ void loopRotEnc () {
             return;
         }
         restartDisplayTime();
-        restartExitMenuTime();
         
         if(inMenu == 0){
             if (steamON) {
@@ -1804,7 +1803,6 @@ void loopRotEnc () {
             return;
         }
         restartDisplayTime();
-        restartExitMenuTime();
     }
 
     if (!purging && encoderVal > 0) {

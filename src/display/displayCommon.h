@@ -304,7 +304,7 @@ bool displayShottimer() {
      * nothing should be done, otherwise wrong time is displayed
      * because the switch is pressed later than totalBrewTime
      */
-    else if (machineState == kShotTimerAfterBrew && brewSwitchState != kBrewSwitchFlushOff) {
+    else if ((machineState == kShotTimerAfterBrew && brewSwitchState != kBrewSwitchFlushOff) || (machineState == kSteam && currBrewState == kBrewFinished)) {
         u8g2.clearBuffer();
         u8g2.drawXBMP(-1, 11, Brew_Cup_Logo_width, Brew_Cup_Logo_height, Brew_Cup_Logo);
 
