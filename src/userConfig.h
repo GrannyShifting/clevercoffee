@@ -47,8 +47,8 @@ enum MACHINE {
 #define CONNECTMODE         1              // 0 = offline 1 = WIFI-MODE
 #define HOSTNAME            "delonghi"
 #define PASS                "delonghi" // default password for WiFiManager
-#define MAXWIFIRECONNECTS   5              // maximum number of reconnection attempts, use -1 to deactivate
-#define WIFICONNECTIONDELAY 10000          // delay between reconnects in ms
+#define MAXWIFIRECONNECTS   1              // maximum number of reconnection attempts, use -1 to deactivate
+#define WIFICONNECTIONDELAY 60000          // delay between reconnects in ms
 
 // PID & Hardware
 #define FEATURE_BREWCONTROL   1                       // 0 = deactivated, 1 = activated

@@ -225,6 +225,7 @@ void restartStandbyTime();
 void initWebVars(void);
 void initMQTT(void);
 void checkMillisOverflow(void);
+void wiFiSetup(void);
 
 // system parameters
 uint8_t pidON = 0; // 1 = control loop in closed loop
@@ -537,46 +538,16 @@ void initOfflineMode() {
  * @brief Check if Wifi is connected, if not reconnect abort function if offline, or brew is running
  */
 void checkWifi() {
-    if (offlineMode == 1 || currBrewState > kBrewIdle) return;
+    if (currBrewState > kBrewIdle) return;
 
-    // There was no WIFI connection at boot -> connect and if it does not succeed, enter offline mode
-    do {
-        if ((millis() - lastWifiConnectionAttempt >= wifiConnectionDelay) && (wifiReconnects <= maxWifiReconnects)) {
-            int statusTemp = WiFi.status();
-
-            if (statusTemp != WL_CONNECTED) { // check WiFi connection status
-                lastWifiConnectionAttempt = millis();
-                wifiReconnects++;
-                LOGF(INFO, "Attempting WIFI (re-)connection: %i", wifiReconnects);
-
-                if (!setupDone) {
-#if OLED_DISPLAY != 0
-                    displayMessage("", "", "", "", langstring_wifirecon, String(wifiReconnects));
-#endif
-                }
-
-                wm.disconnect();
-                wm.autoConnect();
-
-                int count = 1;
-
-                while (WiFi.status() != WL_CONNECTED && count <= 20) {
-                    delay(100); // give WIFI some time to connect
-                    count++;    // reconnect counter, maximum waiting time for reconnect = 20*100ms
-                }
-            }
-        }
-
-        yield(); // Prevent WDT trigger
-    } while (!setupDone && wifiReconnects < maxWifiReconnects && WiFi.status() != WL_CONNECTED);
-
-    if (wifiReconnects >= maxWifiReconnects && WiFi.status() != WL_CONNECTED) {
-        // no wifi connection after trying connection, initiate offline mode
-        initOfflineMode();
+    if(millis() - lastWifiConnectionAttempt >= wifiConnectionDelay){
+        lastWifiConnectionAttempt = millis();
+        wiFiSetup();
     }
-    else {
-        wifiReconnects = 0;
-    }
+
+    offlineMode = 1;
+    if (WiFi.status() == WL_CONNECTED)
+        offlineMode = 0;
 }
 
 char number2string_double[22];
@@ -1147,10 +1118,10 @@ char const* machinestateEnumToString(MachineState machineState) {
 void wiFiSetup() {
 
     wm.setCleanConnect(true);
-    wm.setConfigPortalTimeout(60); // sec timeout for captive portal
-    wm.setConnectTimeout(10);      // using 10s to connect to WLAN, 5s is sometimes too short!
+    wm.setConfigPortalTimeout(1); // sec timeout for captive portal; change back to 60 to set up the web portal
+    wm.setConnectTimeout(5);      // 5s is sometimes too short, set to 10s if there are issues
     wm.setBreakAfterConfig(true);
-    wm.setConnectRetries(3);
+    wm.setConnectRetries(1);
 
     sysParaWifiCredentialsSaved.getStorage();
 
@@ -1468,7 +1439,7 @@ void looppid() {
         temperature -= brewTempOffset;
     }
 
-    if (scheduler && !pidON) {
+    if (scheduler && !pidON && WiFi.status() == WL_CONNECTED) {
         struct tm timeinfo;
         // blocking call for 5 seconds
         if(!getLocalTime(&timeinfo)){
