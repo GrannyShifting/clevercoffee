@@ -99,6 +99,10 @@ inline void printScreen() {
         }
     }
 
+    double currFlowRate = (double)currBrewWeight/currBrewTime;
+
+    displayFlowRate(32, 46, langstring_flow, currFlowRate);
+
     if (config.get<bool>("hardware.sensors.pressure.enabled")) {
         u8g2->setCursor(32, 46);
         u8g2->drawUTF8(32, 46, langstring_pressure);

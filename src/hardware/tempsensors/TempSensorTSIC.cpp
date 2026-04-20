@@ -42,12 +42,12 @@ bool TempSensorTSIC::sample_temperature(double& temperature) const {
     }
 
     if (temp == 222) {
-        // LOG(WARNING, "Temperature reading failed");
+        LOG(WARNING, "Temperature reading failed");
         return false;
     }
 
     if (temp == 221) {
-        // LOG(WARNING, "Temperature sensor not connected");
+        LOG(WARNING, "Temperature sensor not connected");
         return false;
     }
 

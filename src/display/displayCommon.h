@@ -275,6 +275,25 @@ inline void displayBrewTime(const int x, const int y, const char* label, const d
 }
 
 /**
+ * @brief Draw the current flow rate
+ *
+ * @param x             Horizontal position to start drawing
+ * @param y             Vertical position to start drawing
+ * @param label         Text label to display before the time
+ * @param currFlowRate  Current flow rate
+ */
+inline void displayFlowRate(const int x, const int y, const char* label, const double currFlowRate) {
+    u8g2->setDrawColor(1);
+
+    u8g2->setCursor(x, y);
+    u8g2->print(langstring_weight);
+    u8g2->setCursor(x + 50, y);
+    u8g2->print(currFlowRate, 1);
+
+    u8g2->print(" g/s");
+}
+
+/**
  * @brief Draw the current weight with error handling and target indicators at given position
  *
  * If the scale reports an error, "fault" is shown on the display instead of weight.

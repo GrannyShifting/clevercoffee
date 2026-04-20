@@ -12,6 +12,7 @@ static const char* langstring_set_temp;
 static const char* langstring_current_temp;
 static const char* langstring_brew;
 static const char* langstring_weight;
+static const char* langstring_flow;
 static const char* langstring_manual_flush;
 static const char* langstring_hot_water;
 static const char* langstring_pressure;
@@ -47,6 +48,7 @@ inline void initLangStrings(const Config& config) {
         langstring_current_temp = "Temp:  ";
         langstring_brew = "Brew: ";
         langstring_weight = "Weight: ";
+        langstring_flow = "Flow: ";
         langstring_manual_flush = "Flush: ";
         langstring_hot_water = "Water: ";
         langstring_pressure = "Pressure: ";
@@ -87,6 +89,7 @@ inline void initLangStrings(const Config& config) {
         langstring_current_temp = "T:    ";
         langstring_brew = "Brew: ";
         langstring_weight = "Peso: ";
+        langstring_flow = "Flow: ";
         langstring_manual_flush = "Fregar: ";
         langstring_hot_water = "Agua: ";
         langstring_pressure = "Presión: ";
@@ -127,6 +130,7 @@ inline void initLangStrings(const Config& config) {
         langstring_current_temp = "Ist:   ";
         langstring_brew = "Bezug: ";
         langstring_weight = "Gewicht: ";
+        langstring_flow = "Flow: ";
         langstring_manual_flush = "Spuelen: ";
         langstring_hot_water = "Wasser: ";
         langstring_pressure = "Druck: ";

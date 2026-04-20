@@ -1166,12 +1166,14 @@ void setup() {
 
     const int tempSensorType = config.get<int>("hardware.sensors.temperature.type");
 
-    if (tempSensorType == 0) {
-        tempSensor = new TempSensorTSIC(PIN_TEMPSENSOR);
-    }
-    else if (tempSensorType == 1) {
-        tempSensor = new TempSensorDallas(PIN_TEMPSENSOR);
-    }
+    // if (tempSensorType == 0) {
+    //     tempSensor = new TempSensorTSIC(PIN_TEMPSENSOR);
+    // }
+    // else if (tempSensorType == 1) {
+    //     tempSensor = new TempSensorDallas(PIN_TEMPSENSOR);
+    // }
+
+    temperature = setpoint;
 
     if (tempSensor != nullptr) {
         temperature = tempSensor->getCurrentTemperature();
@@ -1260,6 +1262,8 @@ void loopPid() {
 
     // Update the temperature:
     temperatureUpdateRunning = false;
+
+    temperature = setpoint;
 
     if (tempSensor != nullptr) {
         temperature = tempSensor->getCurrentTemperature();

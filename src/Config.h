@@ -258,15 +258,15 @@ class Config {
             _configDefs.emplace("brew.setpoint", ConfigDef::forDouble(SETPOINT, BREW_SETPOINT_MIN, BREW_SETPOINT_MAX));
             _configDefs.emplace("brew.temp_offset", ConfigDef::forDouble(TEMPOFFSET, BREW_TEMP_OFFSET_MIN, BREW_TEMP_OFFSET_MAX));
             _configDefs.emplace("brew.pid_delay", ConfigDef::forDouble(BREW_PID_DELAY, BREW_PID_DELAY_MIN, BREW_PID_DELAY_MAX));
-            _configDefs.emplace("brew.mode", ConfigDef::forInt(0, 0, 2));
+            _configDefs.emplace("brew.mode", ConfigDef::forInt(1, 0, 2));
             _configDefs.emplace("brew.by_time.enabled", ConfigDef::forBool(false));
             _configDefs.emplace("brew.by_time.target_time", ConfigDef::forDouble(TARGET_BREW_TIME, TARGET_BREW_TIME_MIN, TARGET_BREW_TIME_MAX));
-            _configDefs.emplace("brew.by_weight.enabled", ConfigDef::forBool(false));
+            _configDefs.emplace("brew.by_weight.enabled", ConfigDef::forBool(true));
             _configDefs.emplace("brew.by_weight.target_weight", ConfigDef::forDouble(TARGET_BREW_WEIGHT, TARGET_BREW_WEIGHT_MIN, TARGET_BREW_WEIGHT_MAX));
             _configDefs.emplace("brew.by_weight.auto_tare", ConfigDef::forBool(false));
 
             // Pre-infusion
-            _configDefs.emplace("brew.pre_infusion.enabled", ConfigDef::forBool(false));
+            _configDefs.emplace("brew.pre_infusion.enabled", ConfigDef::forBool(true));
             _configDefs.emplace("brew.pre_infusion.time", ConfigDef::forDouble(PRE_INFUSION_TIME, PRE_INFUSION_TIME_MIN, PRE_INFUSION_TIME_MAX));
             _configDefs.emplace("brew.pre_infusion.pause", ConfigDef::forDouble(PRE_INFUSION_PAUSE_TIME, PRE_INFUSION_PAUSE_MIN, PRE_INFUSION_PAUSE_MAX));
 
@@ -306,7 +306,7 @@ class Config {
             _configDefs.emplace("system.showdisplay.enabled", ConfigDef::forBool(true));
 
             // Display
-            _configDefs.emplace("display.template", ConfigDef::forInt(0, 0, 4));
+            _configDefs.emplace("display.template", ConfigDef::forInt(3, 0, 4));
             _configDefs.emplace("display.inverted", ConfigDef::forBool(false));
             _configDefs.emplace("display.language", ConfigDef::forInt(1, 0, 2));
             _configDefs.emplace("display.fullscreen_brew_timer", ConfigDef::forBool(false));
@@ -315,7 +315,7 @@ class Config {
             _configDefs.emplace("display.fullscreen_hot_water_timer", ConfigDef::forBool(false));
             _configDefs.emplace("display.post_brew_timer_duration", ConfigDef::forDouble(POST_BREW_TIMER_DURATION, POST_BREW_TIMER_DURATION_MIN, POST_BREW_TIMER_DURATION_MAX));
             _configDefs.emplace("display.heating_logo", ConfigDef::forBool(true));
-            _configDefs.emplace("display.blinking.mode", ConfigDef::forInt(1, 0, 2));
+            _configDefs.emplace("display.blinking.mode", ConfigDef::forInt(0, 0, 2));
             _configDefs.emplace("display.blinking.delta", ConfigDef::forDouble(BLINKING_DELTA, BLINKING_DELTA_MIN, BLINKING_DELTA_MAX));
 
             // Hardware - OLED
