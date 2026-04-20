@@ -34,7 +34,7 @@ class TempSensor {
          */
         double getCurrentTemperature() {
             // Trigger the timer to update the temperature:
-            update_temperature();
+            // update_temperature();
             // return last_temperature_;
             return 20.0;
         }

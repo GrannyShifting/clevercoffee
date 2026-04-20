@@ -332,7 +332,7 @@ class Config {
 
             // Hardware - Switches
             _configDefs.emplace("hardware.switches.brew.enabled", ConfigDef::forBool(true));
-            _configDefs.emplace("hardware.switches.brew.type", ConfigDef::forInt(Switch::TOGGLE, 0, 2));
+            _configDefs.emplace("hardware.switches.brew.type", ConfigDef::forInt(Switch::MOMENTARY, 0, 2));
             _configDefs.emplace("hardware.switches.brew.mode", ConfigDef::forInt(Switch::NORMALLY_OPEN, 0, 1));
             _configDefs.emplace("hardware.switches.steam.enabled", ConfigDef::forBool(false));
             _configDefs.emplace("hardware.switches.steam.type", ConfigDef::forInt(Switch::TOGGLE, 0, 2));

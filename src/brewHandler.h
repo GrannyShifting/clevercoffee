@@ -63,6 +63,7 @@ inline bool checkBrewStates() {
 inline void valveSafetyShutdownCheck() {
     if (!checkBrewActive() && !checkBrewStates()) {
         valveRelay->off();
+        boilerFillValveRelay->off();
     }
 }
 
@@ -311,7 +312,7 @@ inline bool brew() {
 
         case kPreinfusionPause:
             valveRelay->on();
-            boilerFillValveRelay->on();
+            boilerFillValveRelay->off();
             pumpRelay->off();
             debugPumpState("Pause", "off");
 
@@ -348,6 +349,7 @@ inline bool brew() {
         case kBrewFinished:
             {
                 valveRelay->off();
+                boilerFillValveRelay->off();
                 pumpRelay->off();
                 debugPumpState("BrewFinished", "off");
 
@@ -395,6 +397,7 @@ inline bool manualFlush() {
             if (currBrewSwitchState == kBrewSwitchLongPressed) {
                 startingTime = millis();
                 valveRelay->on();
+                boilerFillValveRelay->on();
                 pumpRelay->on();
                 debugPumpState("ManualFlush", "on");
                 LOG(INFO, "Manual flush started");
@@ -405,6 +408,7 @@ inline bool manualFlush() {
         case kManualFlushRunning:
             if (currBrewSwitchState != kBrewSwitchLongPressed) {
                 valveRelay->off();
+                boilerFillValveRelay->off();
                 pumpRelay->off();
                 debugPumpState("ManualFlush", "off");
                 LOG(INFO, "Manual flush stopped");
@@ -459,6 +463,7 @@ inline void backflush() {
             if (currBrewSwitchState == kBrewSwitchShortPressed && backflushOn && brewSwitchWasOff) {
                 startingTime = millis();
                 valveRelay->on();
+                boilerFillValveRelay->on();
                 pumpRelay->on();
                 debugPumpState("Backflush", "on");
                 LOGF(INFO, "Start backflush cycle %d", currBackflushCycles);
@@ -472,6 +477,7 @@ inline void backflush() {
             if (millis() - startingTime > backflushFillTime * 1000) {
                 startingTime = millis();
                 valveRelay->off();
+                boilerFillValveRelay->off();
                 pumpRelay->off();
                 debugPumpState("Backflush", "off");
                 LOG(INFO, "Backflush: flushing into drip tray");
@@ -491,6 +497,7 @@ inline void backflush() {
                 if (currBackflushCycles < backflushCycles) {
                     startingTime = millis();
                     valveRelay->on();
+                    boilerFillValveRelay->on();
                     pumpRelay->on();
                     debugPumpState("Backflush", "on");
                     currBackflushCycles++;
@@ -514,6 +521,7 @@ inline void backflush() {
 
         case kBackflushFinished:
             valveRelay->off();
+            boilerFillValveRelay->off();
             pumpRelay->off();
             debugPumpState("Backflush", "off");
             LOGF(INFO, "Backflush finished after %d cycles", currBackflushCycles);
