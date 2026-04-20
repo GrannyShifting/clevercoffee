@@ -48,7 +48,7 @@ This document describes all configuration parameters available in the `config.js
 
 ### `brew.mode`
 - **Type**: Integer (enum)
-- **Default**: `0`
+- **Default**: `1`
 - **Valid Values**:
   - `0`: Manual
   - `1`: Automatic
@@ -67,7 +67,7 @@ This document describes all configuration parameters available in the `config.js
 
 ### `brew.by_weight.enabled`
 - **Type**: Boolean
-- **Default**: `false`
+- **Default**: `true`
 - **Description**: Enables brew by weight, so the pump stops automatically when the target weight is reached
 
 ### `brew.by_weight.target_weight`
@@ -85,7 +85,7 @@ This document describes all configuration parameters available in the `config.js
 
 ### `brew.pre_infusion.enabled`
 - **Type**: Boolean
-- **Default**: `false`
+- **Default**: `true`
 - **Description**: Enables pre-wetting of the coffee puck by turning on the pump for a configurable length of time
 
 ### `brew.pre_infusion.time`
@@ -146,7 +146,7 @@ This document describes all configuration parameters available in the `config.js
 
 ### `display.template`
 - **Type**: Integer (enum)
-- **Default**: `0`
+- **Default**: `3`
 - **Valid Values**:
     - `0`: Standard
     - `1`: Minimal
@@ -162,7 +162,7 @@ This document describes all configuration parameters available in the `config.js
 
 ### `display.blinking.mode`
 - **Type**: Integer (enum)
-- **Default**: `1`
+- **Default**: `0`
 - **Valid Values**:
     - `0`: Off
     - `1`: Near Setpoint

@@ -95,13 +95,11 @@ inline void printScreen() {
                 else {
                     displayBrewWeight(32, 26, currBrewWeight, -1, scaleFailure);
                 }
+
+                displayFlowRate(32, 46, langstring_flow, currBrewWeight, currBrewTime, preinfusion, preinfusionPause);
             }
         }
     }
-
-    double currFlowRate = (double)currBrewWeight/currBrewTime;
-
-    displayFlowRate(32, 46, langstring_flow, currFlowRate);
 
     if (config.get<bool>("hardware.sensors.pressure.enabled")) {
         u8g2->setCursor(32, 46);

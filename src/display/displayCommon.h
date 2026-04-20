@@ -282,13 +282,16 @@ inline void displayBrewTime(const int x, const int y, const char* label, const d
  * @param label         Text label to display before the time
  * @param currFlowRate  Current flow rate
  */
-inline void displayFlowRate(const int x, const int y, const char* label, const double currFlowRate) {
+inline void displayFlowRate(const int x, const int y, const char* label, const float weight, const double currBrewTime, const double preinfusion, const double preinfusionPause) {
     u8g2->setDrawColor(1);
 
     u8g2->setCursor(x, y);
-    u8g2->print(langstring_weight);
+    u8g2->print(label);
     u8g2->setCursor(x + 50, y);
-    u8g2->print(currFlowRate, 1);
+    if (currBrewTime / 1000.0 < (preinfusionPause + preinfusion))
+        u8g2->print(weight/(currBrewTime / 1000.0), 1);
+    else
+        u8g2->print(weight/(currBrewTime / 1000.0 - preinfusionPause), 1);
 
     u8g2->print(" g/s");
 }
