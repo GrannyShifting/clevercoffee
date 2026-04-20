@@ -33,7 +33,7 @@
  */
 
 // Relays
-#define PIN_VALVE        17
+#define PIN_VALVE        15
 #define PIN_PUMP         27
 #define PIN_HEATER       2
 #define PIN_POWER_BUTTON 18
