@@ -13,8 +13,15 @@ IOSwitch::IOSwitch(const int pinNumber, const GPIOPin::Type pinType, const Type 
 }
 
 bool IOSwitch::isPressed() {
-    const uint8_t reading = gpio.read();
+    uint16_t reading = gpio.read();
     const unsigned long currentMillis = millis();
+
+    float voltage = (reading / 4095.0) * 3.3;
+
+    reading = 0;
+    if (voltage > 0.660 && voltage < 0.860)
+        reading = 1;
+
 
     if (reading != lastState) {
         lastDebounceTime = currentMillis;

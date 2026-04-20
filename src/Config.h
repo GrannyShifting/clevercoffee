@@ -358,9 +358,9 @@ class Config {
             _configDefs.emplace("hardware.sensors.watertank.mode", ConfigDef::forInt(Switch::NORMALLY_CLOSED, 0, 1));
 
             // Scale
-            _configDefs.emplace("hardware.sensors.scale.enabled", ConfigDef::forBool(false));
+            _configDefs.emplace("hardware.sensors.scale.enabled", ConfigDef::forBool(true));
             _configDefs.emplace("hardware.sensors.scale.samples", ConfigDef::forInt(SCALE_SAMPLES, 1, 20));
-            _configDefs.emplace("hardware.sensors.scale.type", ConfigDef::forInt(0, 0, 5));
+            _configDefs.emplace("hardware.sensors.scale.type", ConfigDef::forInt(1, 0, 5));
             _configDefs.emplace("hardware.sensors.scale.calibration", ConfigDef::forDouble(SCALE_CALIBRATION_FACTOR, SCALE_CALIBRATION_MIN, SCALE_CALIBRATION_MAX));
             _configDefs.emplace("hardware.sensors.scale.calibration2", ConfigDef::forDouble(SCALE_CALIBRATION_FACTOR, SCALE_CALIBRATION_MIN, SCALE_CALIBRATION_MAX));
             _configDefs.emplace("hardware.sensors.scale.known_weight", ConfigDef::forDouble(SCALE_KNOWN_WEIGHT, SCALE_KNOWN_WEIGHT_MIN, SCALE_KNOWN_WEIGHT_MAX));

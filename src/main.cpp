@@ -1014,7 +1014,7 @@ void setup() {
     if (config.get<bool>("hardware.switches.brew.enabled")) {
         const auto type = static_cast<Switch::Type>(config.get<int>("hardware.switches.brew.type"));
         const auto mode = static_cast<Switch::Mode>(config.get<int>("hardware.switches.brew.mode"));
-        brewSwitch = new IOSwitch(PIN_BREWSWITCH, GPIOPin::IN_HARDWARE, type, mode, mode);
+        brewSwitch = new IOSwitch(PIN_BREWSWITCH, GPIOPin::IN_ANALOG, type, mode, mode);
     }
 
     if (config.get<bool>("hardware.switches.hot_water.enabled")) {
@@ -1198,7 +1198,7 @@ void setup() {
 
     // When power is turned on, turn on the machien
     powerButtonRelay->off();
-    delay(250);
+    delay(500);
     powerButtonRelay->on();
 
     setupDone = true;

@@ -268,7 +268,7 @@ For each LED type (status, brew, steam):
 ## Scale
 ### `hardware.sensors.scale.enabled`
 - **Type**: Boolean
-- **Default**: `false`
+- **Default**: `true`
 - **Description**: Enable scale/weight sensor
 
 ### `hardware.sensors.scale.calibration`
@@ -297,7 +297,7 @@ For each LED type (status, brew, steam):
 
 ### `hardware.sensors.scale.type`
 - **Type**: Integer (enum)
-- **Default**: `0`
+- **Default**: `1`
 - **Valid Values**:
     - `0`: 2 load cells
     - `1`: 1 load cell
