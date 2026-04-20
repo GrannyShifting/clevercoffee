@@ -917,6 +917,19 @@ void ParameterRegistry::initialize(Config& config) {
         true
     );
 
+    addEnumConfigParam(
+        "hardware.relays.powerButton.trigger_type",
+        "Power Button Relay Trigger Type",
+        sHardwareRelaySection,
+        2104,
+        nullptr,
+        (const char* const[]){"Low Trigger", "High Trigger"},
+        2,
+        "Relay trigger type for power button control",
+        [] { return true; },
+        true
+    );
+
     // Switches
     addBoolConfigParam(
         "hardware.switches.brew.enabled",

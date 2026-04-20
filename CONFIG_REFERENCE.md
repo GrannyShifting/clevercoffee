@@ -240,6 +240,14 @@ For each LED type (status, brew, steam):
     - `1`: High trigger (active high)
 - **Description**: Pump relay trigger type
 
+### `hardware.relays.powerButton.trigger_type`
+- **Type**: Integer (enum)
+- **Default**: `0`
+- **Valid Values**:
+    - `0`: Low trigger (active low)
+    - `1`: High trigger (active high)
+- **Description**: Power button relay trigger type
+
 ## Sensors
 
 ## Temperature Sensor

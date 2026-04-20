@@ -142,10 +142,12 @@ LED* steamLed = nullptr;
 GPIOPin* heaterRelayPin = nullptr;
 GPIOPin* pumpRelayPin = nullptr;
 GPIOPin* valveRelayPin = nullptr;
+GPIOPin* powerButtonRelayPin = nullptr;
 
 Relay* heaterRelay = nullptr;
 Relay* pumpRelay = nullptr;
 Relay* valveRelay = nullptr;
+Relay* powerButtonRelay = nullptr;
 
 Switch* powerSwitch = nullptr;
 Switch* brewSwitch = nullptr;
@@ -993,6 +995,10 @@ void setup() {
     pumpRelay = new Relay(*pumpRelayPin, pumpTriggerType);
     pumpRelay->off();
 
+    powerButtonRelayPin = new GPIOPin(PIN_POWER_BUTTON, GPIOPin::OUT);
+    const auto powerButtonTriggerType = static_cast<Relay::TriggerType>(config.get<int>("hardware.relays.powerButton.trigger_type"));
+    powerButtonRelay = new Relay(*powerButtonRelayPin, powerButtonTriggerType);
+
     if (config.get<bool>("hardware.switches.power.enabled")) {
         const auto type = static_cast<Switch::Type>(config.get<int>("hardware.switches.power.type"));
         const auto mode = static_cast<Switch::Mode>(config.get<int>("hardware.switches.power.mode"));
@@ -1188,6 +1194,12 @@ void setup() {
             delay(2000); // add delay if not hx711 to give time to display IP address
         }
     }
+
+
+    // When power is turned on, turn on the machien
+    powerButtonRelay->off();
+    delay(250);
+    powerButtonRelay->on();
 
     setupDone = true;
 

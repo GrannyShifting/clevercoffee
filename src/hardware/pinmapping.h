@@ -33,9 +33,11 @@
  */
 
 // Relays
-#define PIN_VALVE  17
-#define PIN_PUMP   27
-#define PIN_HEATER 2
+#define PIN_VALVE        17
+#define PIN_PUMP         27
+#define PIN_HEATER       2
+#define PIN_POWER_BUTTON 18
+
 
 // LEDs
 #define PIN_STATUSLED 26
@@ -43,7 +45,7 @@
 #define PIN_STEAMLED  1
 
 // Periphery
-#define PIN_ZC 18 // Dimmer circuit Zero Crossing
+// #define PIN_ZC 18 // Dimmer circuit Zero Crossing
 
 /**
  * Bidirectional Pins
