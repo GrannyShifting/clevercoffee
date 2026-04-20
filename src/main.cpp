@@ -142,11 +142,13 @@ LED* steamLed = nullptr;
 GPIOPin* heaterRelayPin = nullptr;
 GPIOPin* pumpRelayPin = nullptr;
 GPIOPin* valveRelayPin = nullptr;
+GPIOPin* boilerFillValveRelayPin = nullptr;
 GPIOPin* powerButtonRelayPin = nullptr;
 
 Relay* heaterRelay = nullptr;
 Relay* pumpRelay = nullptr;
 Relay* valveRelay = nullptr;
+Relay* boilerFillValveRelay = nullptr;
 Relay* powerButtonRelay = nullptr;
 
 Switch* powerSwitch = nullptr;
@@ -989,6 +991,11 @@ void setup() {
     const auto valveTriggerType = static_cast<Relay::TriggerType>(config.get<int>("hardware.relays.valve.trigger_type"));
     valveRelay = new Relay(*valveRelayPin, valveTriggerType);
     valveRelay->off();
+
+    boilerFillValveRelayPin = new GPIOPin(PIN_BOILER_FILL_VALVE, GPIOPin::OUT);
+    const auto boilerFillValveTriggerType = static_cast<Relay::TriggerType>(config.get<int>("hardware.relays.boilerFillValve.trigger_type"));
+    boilerFillValveRelay = new Relay(*boilerFillValveRelayPin, boilerFillValveTriggerType);
+    boilerFillValveRelay->off();
 
     pumpRelayPin = new GPIOPin(PIN_PUMP, GPIOPin::OUT);
     const auto pumpTriggerType = static_cast<Relay::TriggerType>(config.get<int>("hardware.relays.pump.trigger_type"));

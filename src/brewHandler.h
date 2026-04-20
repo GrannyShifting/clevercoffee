@@ -298,6 +298,7 @@ inline bool brew() {
 
         case kPreinfusion:
             valveRelay->on();
+            boilerFillValveRelay->on();
             pumpRelay->on();
             debugPumpState("Preinfusion", "on");
 
@@ -310,6 +311,7 @@ inline bool brew() {
 
         case kPreinfusionPause:
             valveRelay->on();
+            boilerFillValveRelay->on();
             pumpRelay->off();
             debugPumpState("Pause", "off");
 
@@ -323,6 +325,7 @@ inline bool brew() {
         case kBrewRunning:
             {
                 valveRelay->on();
+                boilerFillValveRelay->on();
                 pumpRelay->on();
                 debugPumpState("BrewRunning", "on");
 

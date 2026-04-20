@@ -46,6 +46,13 @@ class GPIOPin {
         void write(bool value) const;
 
         /**
+         * @brief Set the type of the GPIO pin
+         *
+         * @param pinType Desired type of the pin
+         */
+        void setType(Type pinType) const;
+
+        /**
          * @brief Read value from pin
          * @details Reads the value from this GPIO pin, either as analog value if configured as analog input, or as digital
          *          value
@@ -59,14 +66,9 @@ class GPIOPin {
          */
         [[nodiscard]] Type getType() const;
 
-    private:
-        /**
-         * @brief Set the type of the GPIO pin
-         *
-         * @param pinType Desired type of the pin
-         */
-        void setType(Type pinType) const;
-
         int pin;
+
+    private:
+
         Type pinType;
 };

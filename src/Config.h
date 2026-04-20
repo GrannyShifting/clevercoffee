@@ -326,11 +326,12 @@ class Config {
             // Hardware - Relays
             _configDefs.emplace("hardware.relays.heater.trigger_type", ConfigDef::forInt(Relay::HIGH_TRIGGER, 0, 1));
             _configDefs.emplace("hardware.relays.valve.trigger_type", ConfigDef::forInt(Relay::HIGH_TRIGGER, 0, 1));
-            _configDefs.emplace("hardware.relays.pump.trigger_type", ConfigDef::forInt(Relay::HIGH_TRIGGER, 0, 1));
+            _configDefs.emplace("hardware.relays.boilerFillValve.trigger_type", ConfigDef::forInt(Relay::HIGH_TRIGGER, 0, 1));
+            _configDefs.emplace("hardware.relays.pump.trigger_type", ConfigDef::forInt(Relay::LOW_TRIGGER, 0, 1));
             _configDefs.emplace("hardware.relays.powerButton.trigger_type", ConfigDef::forInt(Relay::LOW_TRIGGER, 0, 1));
 
             // Hardware - Switches
-            _configDefs.emplace("hardware.switches.brew.enabled", ConfigDef::forBool(false));
+            _configDefs.emplace("hardware.switches.brew.enabled", ConfigDef::forBool(true));
             _configDefs.emplace("hardware.switches.brew.type", ConfigDef::forInt(Switch::TOGGLE, 0, 2));
             _configDefs.emplace("hardware.switches.brew.mode", ConfigDef::forInt(Switch::NORMALLY_OPEN, 0, 1));
             _configDefs.emplace("hardware.switches.steam.enabled", ConfigDef::forBool(false));

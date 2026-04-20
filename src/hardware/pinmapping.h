@@ -17,7 +17,7 @@
 #define PIN_STEAMSWITCH 35
 #define PIN_WATERSWITCH 36
 
-#define PIN_ROTARY_DT  4 // Rotary encoder data pin
+#define PIN_ROTARY_DT  13 // Rotary encoder data pin
 #define PIN_ROTARY_CLK 3 // Rotary encoder clock pin
 #define PIN_ROTARY_SW  5 // Rotary encoder switch
 
@@ -33,15 +33,16 @@
  */
 
 // Relays
-#define PIN_VALVE        15
-#define PIN_PUMP         27
-#define PIN_HEATER       2
-#define PIN_POWER_BUTTON 18
+#define PIN_VALVE               15
+#define PIN_BOILER_FILL_VALVE   19
+#define PIN_PUMP                4
+#define PIN_HEATER              17
+#define PIN_POWER_BUTTON        18
 
 
 // LEDs
 #define PIN_STATUSLED 26
-#define PIN_BREWLED   19
+#define PIN_BREWLED   2
 #define PIN_STEAMLED  1
 
 // Periphery

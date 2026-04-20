@@ -232,9 +232,17 @@ For each LED type (status, brew, steam):
     - `1`: High trigger (active high)
 - **Description**: Valve relay trigger type
 
-### `hardware.relays.pump.trigger_type`
+### `hardware.relays.boilerFillValve.trigger_type`
 - **Type**: Integer (enum)
 - **Default**: `1`
+- **Valid Values**:
+    - `0`: Low trigger (active low)
+    - `1`: High trigger (active high)
+- **Description**: Boiler fill valve relay trigger type
+
+### `hardware.relays.pump.trigger_type`
+- **Type**: Integer (enum)
+- **Default**: `0`
 - **Valid Values**:
     - `0`: Low trigger (active low)
     - `1`: High trigger (active high)

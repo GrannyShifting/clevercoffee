@@ -6,12 +6,20 @@
 
 #include "Relay.h"
 #include "GPIOPin.h"
+#include "pinmapping.h"
+#include "Logger.h"
 
 Relay::Relay(GPIOPin& gpioInstance, const TriggerType trigger) :
     gpio(gpioInstance), relayTrigger(trigger) {
 }
 
 void Relay::on() const {
+
+    // LOGF(INFO, "%d", (int)gpio.pin);
+
+    if (gpio.pin == PIN_PUMP)
+        gpio.setType(GPIOPin::OUT);
+
     if (relayTrigger == HIGH_TRIGGER) {
         gpio.write(HIGH);
     }
@@ -21,6 +29,11 @@ void Relay::on() const {
 }
 
 void Relay::off() const {
+    if (gpio.pin == PIN_PUMP){
+        gpio.setType(GPIOPin::IN_ANALOG);
+        return;
+    }
+
     if (relayTrigger == HIGH_TRIGGER) {
         gpio.write(LOW);
     }

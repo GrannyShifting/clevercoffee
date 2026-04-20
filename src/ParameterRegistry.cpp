@@ -905,10 +905,23 @@ void ParameterRegistry::initialize(Config& config) {
     );
 
     addEnumConfigParam(
+        "hardware.relays.boilerFillValve.trigger_type",
+        "Boiler Fill Valve Relay Trigger Type",
+        sHardwareRelaySection,
+        2103,
+        nullptr,
+        relayTriggerTypes,
+        2,
+        "Relay trigger type for boiler fill valve control",
+        [] { return true; },
+        true
+    );
+
+    addEnumConfigParam(
         "hardware.relays.pump.trigger_type",
         "Pump Relay Trigger Type",
         sHardwareRelaySection,
-        2103,
+        2104,
         nullptr,
         (const char* const[]){"Low Trigger", "High Trigger"},
         2,
@@ -921,7 +934,7 @@ void ParameterRegistry::initialize(Config& config) {
         "hardware.relays.powerButton.trigger_type",
         "Power Button Relay Trigger Type",
         sHardwareRelaySection,
-        2104,
+        2105,
         nullptr,
         (const char* const[]){"Low Trigger", "High Trigger"},
         2,
