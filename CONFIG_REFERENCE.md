@@ -106,7 +106,7 @@ This document describes all configuration parameters available in the `config.js
 
 ### `display.fullscreen_brew_timer`
 - **Type**: Boolean
-- **Default**: `false`
+- **Default**: `true`
 - **Description**: Show brew timer in fullscreen mode
 
 ### `display.blescale_brew_timer`
@@ -116,7 +116,7 @@ This document describes all configuration parameters available in the `config.js
 
 ### `display.fullscreen_manual_flush_timer`
 - **Type**: Boolean
-- **Default**: `false`
+- **Default**: `true`
 - **Description**: Show manual flush timer in fullscreen mode
 
 ### `display.fullscreen_hot_water_timer`

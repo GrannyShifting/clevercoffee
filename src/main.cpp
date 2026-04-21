@@ -1064,6 +1064,7 @@ void setup() {
             otaPass = config.get<String>("system.ota_password");
             ArduinoOTA.setHostname(hostname.c_str()); //  Device name for OTA
             ArduinoOTA.setPassword(otaPass.c_str());  //  Password for OTA
+            ArduinoOTA.setTimeout(5000); // Default is 1000ms
             ArduinoOTA.begin();
         }
 
@@ -1207,7 +1208,7 @@ void setup() {
 
     // When power is turned on, turn on the machien
     powerButtonRelay->off();
-    delay(500);
+    delay(750);
     powerButtonRelay->on();
 
     setupDone = true;

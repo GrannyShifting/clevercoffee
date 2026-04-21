@@ -288,8 +288,10 @@ inline void displayFlowRate(const int x, const int y, const char* label, const f
     u8g2->setCursor(x, y);
     u8g2->print(label);
     u8g2->setCursor(x + 50, y);
-    if (currBrewTime / 1000.0 < (preinfusionPause + preinfusion))
+    if (currBrewTime / 1000.0 < preinfusion)
         u8g2->print(weight/(currBrewTime / 1000.0), 1);
+    else if (currBrewTime / 1000.0 < (preinfusionPause + preinfusion))
+        u8g2->print(weight/preinfusion, 1);
     else
         u8g2->print(weight/(currBrewTime / 1000.0 - preinfusionPause), 1);
 
@@ -623,12 +625,20 @@ inline bool displayFullscreenBrewTimer() {
 
             if (scale && config.get<bool>("hardware.sensors.scale.enabled")) {
                 u8g2->setFont(u8g2_font_profont22_tr);
-                u8g2->setCursor(64, 15);
+                u8g2->setCursor(44, 0);
                 u8g2->print(currBrewTime / 1000, 1);
-                u8g2->print("s");
-                u8g2->setCursor(64, 38);
+                u8g2->print("s");                
+                u8g2->setCursor(44, 20);
                 u8g2->print(currBrewWeight, 1);
                 u8g2->print("g");
+                u8g2->setCursor(44, 43);
+                if (currBrewTime / 1000.0 < preinfusion)
+                    u8g2->print(currBrewWeight/(currBrewTime / 1000.0), 1);
+                else if (currBrewTime / 1000.0 < (preinfusionPause + preinfusion))
+                    u8g2->print(currBrewWeight/preinfusion, 1);
+                else
+                    u8g2->print(currBrewWeight/(currBrewTime / 1000.0 - preinfusionPause), 1);
+                u8g2->print("g/s");
                 u8g2->setFont(u8g2_font_profont11_tf);
             }
             else {
