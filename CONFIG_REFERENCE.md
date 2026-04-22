@@ -250,7 +250,7 @@ For each LED type (status, brew, steam):
 
 ### `hardware.relays.powerButton.trigger_type`
 - **Type**: Integer (enum)
-- **Default**: `0`
+- **Default**: `1`
 - **Valid Values**:
     - `0`: Low trigger (active low)
     - `1`: High trigger (active high)

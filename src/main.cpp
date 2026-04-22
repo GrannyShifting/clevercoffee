@@ -1210,6 +1210,8 @@ void setup() {
     powerButtonRelay->off();
     delay(750);
     powerButtonRelay->on();
+    delay(750);
+    powerButtonRelay->off();
 
     setupDone = true;
 
