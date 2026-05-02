@@ -358,6 +358,18 @@ void ParameterRegistry::initialize(Config& config) {
             BACKFLUSH_FLUSH_TIME_MAX,
             "Time in seconds the selenoid valve stays open during one backflush cycle"
         );
+
+        addNumericConfigParam<double>(
+            "descale.grams_remaining",
+            "Descale Grams Remaining",
+            kDouble,
+            sMaintenanceSection,
+            404,
+            nullptr,
+            DESCALE_GRAMS_REMAINING_MIN,
+            DESCALE_GRAMS_REMAINING_MAX,
+            "Grams remaining until descale is required."
+        );
     }
 
     if (config.get<bool>("hardware.sensors.scale.enabled")) {

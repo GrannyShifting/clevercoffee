@@ -278,6 +278,9 @@ class Config {
             _configDefs.emplace("backflush.fill_time", ConfigDef::forDouble(BACKFLUSH_FILL_TIME, BACKFLUSH_FILL_TIME_MIN, BACKFLUSH_FILL_TIME_MAX));
             _configDefs.emplace("backflush.flush_time", ConfigDef::forDouble(BACKFLUSH_FLUSH_TIME, BACKFLUSH_FLUSH_TIME_MIN, BACKFLUSH_FLUSH_TIME_MAX));
 
+            // Descale
+            _configDefs.emplace("descale.grams_remaining", ConfigDef::forDouble(DESCALE_GRAMS_REMAINING, DESCALE_GRAMS_REMAINING_MIN, DESCALE_GRAMS_REMAINING_MAX));
+
             // Standby
             _configDefs.emplace("standby.enabled", ConfigDef::forBool(false));
             _configDefs.emplace("standby.time", ConfigDef::forDouble(STANDBY_MODE_TIME, STANDBY_MODE_TIME_MIN, STANDBY_MODE_TIME_MAX));

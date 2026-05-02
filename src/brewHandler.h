@@ -353,6 +353,12 @@ inline bool brew() {
                 pumpRelay->off();
                 debugPumpState("BrewFinished", "off");
 
+                double descaleGramsRemaining = config.get<double>("descale.grams_remaining");
+                descaleGramsRemaining -= currBrewWeight;
+                if (descaleGramsRemaining < 0)
+                    descaleGramsRemaining = 0;
+                ParameterRegistry::getInstance().setParameterValue("descale.grams_remaining", descaleGramsRemaining);
+
                 brewSwitchWasOff = false;
                 LOG(INFO, "Brew finished");
                 LOGF(INFO, "Shot time: %4.1f s", currBrewTime / 1000);
@@ -526,6 +532,7 @@ inline void backflush() {
             debugPumpState("Backflush", "off");
             LOGF(INFO, "Backflush finished after %d cycles", currBackflushCycles);
             currBackflushCycles = 1;
+            ParameterRegistry::getInstance().setParameterValue("descale.grams_remaining", DESCALE_GRAMS_REMAINING);
             brewSwitchWasOff = false;
             currBackflushState = kBackflushIdle;
 

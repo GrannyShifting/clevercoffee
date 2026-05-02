@@ -26,6 +26,16 @@ This document describes all configuration parameters available in the `config.js
 
 ---
 
+## Descale
+
+### `descale.grams_remaining`
+- **Type**: Double (grams)
+- **Default**: `17500`
+- **Range**: 0.0-100000.0
+- **Description**: Grams until descale is required
+
+---
+
 ## Brew Settings
 
 ### `brew.pid_delay`
