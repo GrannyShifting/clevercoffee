@@ -1,0 +1,181 @@
+{
+  "backflush": {
+    "cycles": 5,
+    "fill_time": 5,
+    "flush_time": 10
+  },
+  "brew": {
+    "by_time": {
+      "enabled": false,
+      "target_time": 25
+    },
+    "by_weight": {
+      "auto_tare": false,
+      "enabled": true,
+      "target_weight": 36
+    },
+    "mode": 1,
+    "pid_delay": 10,
+    "pre_infusion": {
+      "enabled": true,
+      "pause": 15,
+      "time": 7
+    },
+    "setpoint": 95,
+    "temp_offset": 0
+  },
+  "descale": {
+    "grams_remaining": 17421.0063
+  },
+  "display": {
+    "blescale_brew_timer": false,
+    "blinking": {
+      "delta": 0.3,
+      "mode": 0
+    },
+    "fullscreen_brew_timer": true,
+    "fullscreen_hot_water_timer": false,
+    "fullscreen_manual_flush_timer": true,
+    "heating_logo": true,
+    "inverted": false,
+    "language": 1,
+    "post_brew_timer_duration": 90,
+    "template": 3
+  },
+  "hardware": {
+    "leds": {
+      "brew": {
+        "enabled": false,
+        "inverted": false
+      },
+      "status": {
+        "enabled": false,
+        "inverted": false
+      },
+      "steam": {
+        "enabled": false,
+        "inverted": false
+      }
+    },
+    "oled": {
+      "address": 0,
+      "enabled": true,
+      "type": 0
+    },
+    "relays": {
+      "boilerFillValve": {
+        "trigger_type": 1
+      },
+      "heater": {
+        "trigger_type": 1
+      },
+      "powerButton": {
+        "trigger_type": 1
+      },
+      "pump": {
+        "trigger_type": 0
+      },
+      "valve": {
+        "trigger_type": 1
+      }
+    },
+    "sensors": {
+      "pressure": {
+        "enabled": false
+      },
+      "scale": {
+        "calibration": 4593.165,
+        "calibration2": 1,
+        "enabled": true,
+        "known_weight": 219.3,
+        "samples": 2,
+        "type": 1
+      },
+      "temperature": {
+        "type": 0
+      },
+      "watertank": {
+        "enabled": false,
+        "mode": 1
+      }
+    },
+    "switches": {
+      "brew": {
+        "enabled": true,
+        "mode": 0,
+        "type": 0
+      },
+      "hot_water": {
+        "enabled": false,
+        "mode": 0,
+        "type": 1
+      },
+      "power": {
+        "enabled": false,
+        "mode": 0,
+        "type": 1
+      },
+      "steam": {
+        "enabled": false,
+        "mode": 0,
+        "type": 1
+      }
+    }
+  },
+  "mqtt": {
+    "broker": "",
+    "enabled": false,
+    "hassio": {
+      "enabled": false,
+      "prefix": "homeassistant"
+    },
+    "password": "silvia",
+    "port": 1883,
+    "topic": "custom/kitchen/",
+    "username": "rancilio"
+  },
+  "pid": {
+    "bd": {
+      "enabled": false,
+      "kp": 50,
+      "tn": 0,
+      "tv": 20
+    },
+    "ema_factor": 0.6,
+    "enabled": true,
+    "regular": {
+      "i_max": 55,
+      "kp": 62,
+      "tn": 52,
+      "tv": 11.5
+    },
+    "steam": {
+      "kp": 150
+    },
+    "use_ponm": false
+  },
+  "standby": {
+    "enabled": false,
+    "time": 35
+  },
+  "steam": {
+    "setpoint": 120
+  },
+  "system": {
+    "auth": {
+      "enabled": false,
+      "password": "admin",
+      "username": "admin"
+    },
+    "hostname": "silvia",
+    "log_level": 2,
+    "offline_mode": false,
+    "ota_password": "otapass",
+    "showdisplay": {
+      "enabled": true
+    },
+    "timing_debug": {
+      "enabled": false
+    }
+  }
+}
